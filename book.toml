@@ -1,0 +1,8 @@
+[book]
+title = "The WapL Programming Language 日本語版"
+authors = ["kazanefu"]
+language = "en"
+
+[output.html]
+additional-js = ["theme/highlight.min.js", "theme/wapl.js","theme/wapl-rainbow.js"]
+additional-css = ["theme/wapl.css","theme/wapl-rainbow.css"]
