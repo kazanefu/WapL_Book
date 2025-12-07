@@ -1,4 +1,4 @@
-# The WapL Programming Lanuage 日本語版(Compiler ver)
+# The WapL Programming Language 日本語版(Compiler ver)
 
 **著: kazanefu**
 
