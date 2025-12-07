@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6ab82d6e.js";
+            window.path_to_searchindex_js = "searchindex-f63579db.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-3bbbae93.js"></script>
+        <script src="toc-525cee7b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,6 +181,17 @@
 <p><strong>著: kazanefu</strong></p>
 <p>本ドキュメントではコンパイラ版WapL 0.1.5かそれ以降を前提としています。WapLコンパイラのインストールやアップデート方法は<a href="#インストール">第1章のWapLを導入</a></p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
+<p>コンパイラ版WapLはシンプルなルールで記述で低レベルの制御まででき、コンパイル時間・実行時間ともに高速で、非常に簡易的な所有権/借用の仕組みによってコンパイル時にある程度のメモリ安全を保障することができ、また主にC/C++や他にもLLVMバックエンドの言語とリンクすることのできる言語です。著者が個人で趣味で作ったレベルの言語なので高レベルな記述やライブラリの量などは非常に少なくなってしまっていますが、前向きに捉えれば簡単に習得することができる言語でもあります。</p>
+<h2 id="この本の使い方"><a class="header" href="#この本の使い方">この本の使い方</a></h2>
+<p>この本では章の順に読むことを想定した構成にはなっていますが、読み飛ばしてわからないところがあったら戻ってみるなど自由に読んでもらって構いません。自分に合った方法でどうぞ。</p>
+<p>第1章ではWapLのインストール方法からwapl-cliの使い方まで紹介します。</p>
+<p>第2章ではWapLにおける変数や関数や演算や制御フローといったプログラミングにおける基本的な概念について説明します。</p>
+<p>第3章ではWapLでの非常に簡易的な所有権/借用の仕組みとメモリ管理について説明します。</p>
+<p>第4章では構造体について説明します。</p>
+<p>第5章では複数ファイルでの開発と標準ライブラリの使い方について軽く説明します。</p>
+<p>第6章では第5章までに分類されなかった説明を細かく分けて説明します。</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="waplを始める"><a class="header" href="#waplを始める">WapLを始める</a></h1>
 <p>WapLへようこそ、この章では以下のことを説明します。</p>
 <ul>
@@ -195,7 +206,7 @@
 <blockquote>
 <p>注:WapLでは内部でClangを使うので事前にインストールしておいてください。もし関数がリンクできない等のエラーが出る場合はCのライブラリが不足している可能性がありますので確認してください。WapLではClangは2025/12/7現在21.1.6を推奨しています</p>
 </blockquote>
-<p>bashで以下のコードを実行してください</p>
+<p>bashで以下のコードを実行してインストーラを呼んでください</p>
 <pre><code class="language-bash">$ curl -fsSL https://github.com/kazanefu/WapL_Compiler/releases/latest/download/installer.sh | bash
 </code></pre>
 <p>成功していれば以下のような出力がされるでしょう:</p>
@@ -290,6 +301,71 @@ $ ./main
 <p>簡単なプロジェクトなら<code>waplc</code>でコンパイルするだけでも十分ですが、wapl-cliを使うことでもっと簡単にプロジェクトの作成、ビルド、標準ライブラリなどをできるようになります。次は、wapl-cliについて紹介します。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="wapl-cliを使う"><a class="header" href="#wapl-cliを使う">wapl-cliを使う</a></h1>
+<p>wapl-cliはWapLプロジェクトの作成、標準ライブラリの取得、ビルド/リリースビルドを簡単にすることができるCLIツールです。これによってプロジェクトの開始からリリースまでより簡単にできるようになります。以降はwapl-cliを使用することを想定しています。まずはwapl-cliが使える状態にあるか確認してください。</p>
+<pre><code class="language-bash">$ wapl-cli --help
+wapl-cli commands:
+  new &lt;name&gt;
+  build
+  std_load
+  run
+</code></pre>
+<p>このようにwapl-cliのコマンド一覧が出てきたら成功です。もし失敗したら場合は<a href="#インストール">「WapLを導入」</a>に戻ってインストーラを呼んでください。</p>
+<h2 id="wapl-cliでプロジェクトを作成する"><a class="header" href="#wapl-cliでプロジェクトを作成する">wapl-cliでプロジェクトを作成する</a></h2>
+<p>wapl-cliを使って新しいプロジェクトを作成しましょう。まずは<strong>projects</strong>ディレクトリに戻ってください。ここではとりあえず名前を<strong>hello_wapl_cli</strong>という名前でプロジェクトを作成します。</p>
+<pre><code class="language-bash">$ wapl-cli new hello_wapl_cli
+$ cd hello_wapl_cli
+</code></pre>
+<p>これによって<strong>hello_wapl_cli</strong>という名前のプロジェクトを作成できました。<strong>hello_wapl_cli</strong>ディレクトリの中は以下のようになってるはずです。</p>
+<pre><code class="language-bash">.
+├── src
+│   └── main.wapl
+├── std
+│   ├── HelloWorld.wapl
+│   ├── String.wapl
+│   ├── VecT.wapl
+│   ├── allstd.wapl
+│   ├── assign_and_cal.wapl
+│   ├── iterator.wapl
+│   ├── longinput.wapl
+│   ├── math.wapl
+│   ├── sort.wapl
+│   ├── time.wapl
+│   └── utility.wapl
+└── target
+</code></pre>
+<p><strong>src</strong>にmain.waplがあり、main.waplには以下のコードが書かれています。</p>
+<pre><code class="language-wapl">fn main():i32{ println("Hello, WapL!"); return 0s; }
+</code></pre>
+<p>また、<strong>std</strong>には標準ライブラリが入っています。</p>
+<blockquote>
+<p>注釈:上記の標準ライブラリの中身はバージョン0.1.5時点のものです。バージョンによって内容物が異なってる場合があります。</p>
+</blockquote>
+<p>また、<strong>target</strong>というディレクトリも作られています。ここにはwapl-cliを使ってビルドした実行ファイルが保存される場所になります。</p>
+<h2 id="wapl-cliでビルド実行する"><a class="header" href="#wapl-cliでビルド実行する">wapl-cliでビルド/実行する</a></h2>
+<p><strong>hello_wapl_cli</strong>ディレクトリにいることを確認して以下のコマンドで<code>main.wapl</code>のコードをビルドします。</p>
+<pre><code class="language-bash">$ wapl-cli build
+LLVM IR output: ./src/main.ll
+Build success! → ./target/hello_wapl_cli
+Build complete: ./target/hello_wapl_cli
+</code></pre>
+<p>のように出れば成功です。場合によっては以下のように警告が出ることがありますが動作には問題ありません。</p>
+<pre><code class="language-bash">warning: overriding the module target triple with xxx [-Woverride-module]
+1 warning generated.
+</code></pre>
+<p>ビルドしたことで<code>./target/hello_wapl_cli</code>にプロジェクトの名前で実行可能ファイルが作られ、<code>./src/main.ll</code>に中間言語のLLVM IRのファイルが生成されます。もし他の言語で作ったものでWapLで作ったものとリンクさせたい場合はこのIRを使うことができます。</p>
+<p>以下のように実行することができます。</p>
+<pre><code class="language-bash">$ ./target/hello_wapl_cli 
+Hello, WapL!
+</code></pre>
+<p>先ほど<code>wapl-cli build</code>でビルドし、<code>./target/hello_wapl_cli </code>で実行しましたが、<code>wapl-cli run</code>でこの二つを一つのコマンドですることもできます。</p>
+<pre><code class="language-bash">$ wapl-cli run
+LLVM IR output: ./src/main.ll
+Build success! → ./target/hello_wapl_cli
+Build complete: ./target/hello_wapl_cli
+Hello, WapL!
+</code></pre>
+<p>リリースに向けてビルドする場合は<code>wapl-cli release</code>を使います。これにより、ClangのO3相当の最適化をした状態でビルドをすることができますが、<code>wapl-cli build</code>と比較してビルドには時間が長くなるため、<code>wapl-cli build</code>は開発時に素早く頻繁に再ビルドしたいとき用で、<code>wapl-cli release</code>は最終的なビルドのとき用です。</p>
+<p>wapl-cliはたいていの場合waplcを直接使うより便利ですが、内部で使用するClangの指定や実行ファイルを作らずにIRのみ作成、デバッグ用にASTをすべて出力するなどの細かい設定をしたい場合はwaplcを直接使う必要があります。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="一般的なプログラミングの概念"><a class="header" href="#一般的なプログラミングの概念">一般的なプログラミングの概念</a></h1>
 

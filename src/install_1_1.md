@@ -6,7 +6,7 @@
 
 >注:WapLでは内部でClangを使うので事前にインストールしておいてください。もし関数がリンクできない等のエラーが出る場合はCのライブラリが不足している可能性がありますので確認してください。WapLではClangは2025/12/7現在21.1.6を推奨しています
 
-bashで以下のコードを実行してください
+bashで以下のコードを実行してインストーラを呼んでください
 ```bash
 $ curl -fsSL https://github.com/kazanefu/WapL_Compiler/releases/latest/download/installer.sh | bash
 ```

@@ -1,6 +1,7 @@
 # Summary
 
 [The WapL Programming Lanuage 日本語版](./chapter_0.md)
+[はじめに](./chapter_0_1.md)
 - [WapLを始める](./chapter_1.md)
   - [WapLを導入](./install_1_1.md)
   - [Hello, World!](./make_project_1_2.md)
