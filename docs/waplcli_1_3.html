@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4fcd170c.js";
+            window.path_to_searchindex_js = "searchindex-e254d48f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2229194e.js"></script>
+        <script src="toc-b88c102b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,7 +207,8 @@ $ cd hello_wapl_cli
 │   ├── sort.wapl
 │   ├── time.wapl
 │   └── utility.wapl
-└── target
+├── target
+└── wapl.toml
 </code></pre>
 <p><strong>src</strong>にmain.waplがあり、main.waplには以下のコードが書かれています。</p>
 <pre><code class="language-wapl">fn main():i32{ println("Hello, WapL!"); return 0s; }
@@ -217,6 +218,19 @@ $ cd hello_wapl_cli
 <p>注釈:上記の標準ライブラリの中身はバージョン0.1.5時点のものです。バージョンによって内容物が異なってる場合があります。</p>
 </blockquote>
 <p>また、<strong>target</strong>というディレクトリも作られています。ここにはwapl-cliを使ってビルドした実行ファイルが保存される場所になります。</p>
+<p>そして<strong>wapl.toml</strong>にはビルド設定が書かれています。中身は以下のようになっています:</p>
+<pre><code class="language-toml">[build]
+input = "src/main.wapl"
+output = "target/hello_wapl_cli"
+opt = "O2"
+clang = "clang"
+
+[release]
+input = "src/main.wapl"
+output = "target/hello_wapl_cli"
+opt = "O3"
+clang = "clang"
+</code></pre>
 <h2 id="wapl-cliでビルド実行する"><a class="header" href="#wapl-cliでビルド実行する">wapl-cliでビルド/実行する</a></h2>
 <p><strong>hello_wapl_cli</strong>ディレクトリにいることを確認して以下のコマンドで<code>main.wapl</code>のコードをビルドします。</p>
 <pre><code class="language-bash">$ wapl-cli build

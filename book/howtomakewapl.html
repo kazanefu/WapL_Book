@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The WapL Programming Language 日本語版</title>
-        <meta name="robots" content="noindex">
+        <title>WapLコンパイラの作り方 - The WapL Programming Language 日本語版</title>
 
 
         <!-- Custom HTML head -->
@@ -177,252 +176,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="the-wapl-programming-language-日本語版compiler-ver"><a class="header" href="#the-wapl-programming-language-日本語版compiler-ver">The WapL Programming Language 日本語版(Compiler ver)</a></h1>
-<p><strong>著: kazanefu</strong></p>
-<p>本ドキュメントではコンパイラ版WapL 0.1.5かそれ以降を前提としています。WapLコンパイラのインストールやアップデート方法は<a href="#インストール">第1章のWapLを導入</a></p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
-<p>コンパイラ版WapLはシンプルなルールで記述で低レベルの制御まででき、コンパイル時間・実行時間ともに高速で、非常に簡易的な所有権/借用の仕組みによってコンパイル時にある程度のメモリ安全を保障することができ、また主にC/C++や他にもLLVMバックエンドの言語とリンクすることのできる言語です。著者が個人で趣味で作ったレベルの言語なので高レベルな記述やライブラリの量などは非常に少なくなってしまっていますが、前向きに捉えれば簡単に習得することができる言語でもあります。</p>
-<h2 id="この本の使い方"><a class="header" href="#この本の使い方">この本の使い方</a></h2>
-<p>この本では章の順に読むことを想定した構成にはなっていますが、読み飛ばしてわからないところがあったら戻ってみるなど自由に読んでもらって構いません。自分に合った方法でどうぞ。</p>
-<p>第1章ではWapLのインストール方法からwapl-cliの使い方まで紹介します。</p>
-<p>第2章ではWapLにおける変数や関数や演算や制御フローといったプログラミングにおける基本的な概念について説明します。</p>
-<p>第3章ではWapLでの非常に簡易的な所有権/借用の仕組みとメモリ管理について説明します。</p>
-<p>第4章では構造体について説明します。</p>
-<p>第5章では複数ファイルでの開発と標準ライブラリの使い方について軽く説明します。</p>
-<p>第6章では第5章までに分類されなかった説明を細かく分けて説明します。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="waplを始める"><a class="header" href="#waplを始める">WapLを始める</a></h1>
-<p>WapLへようこそ、この章では以下のことを説明します。</p>
-<ul>
-<li>LinuxにWapLコンパイラをインストールする</li>
-<li><code>Hello, world!</code>と表示するプログラムを書く</li>
-<li><code>wapl-cli</code> を使用する</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="インストール"><a class="header" href="#インストール">インストール</a></h1>
-<p>まず、Githubのreleaseからインストーラを起動してwaplupとwapl-cliをインストールします。その後、waplupを使ってコンパイラwaplcをインストールします</p>
-<h2 id="linuxにインストールする"><a class="header" href="#linuxにインストールする">Linuxにインストールする</a></h2>
-<blockquote>
-<p>注:WapLでは内部でClangを使うので事前にインストールしておいてください。もし関数がリンクできない等のエラーが出る場合はCのライブラリが不足している可能性がありますので確認してください。WapLではClangは2025/12/7現在21を推奨しています</p>
-</blockquote>
-<p>bashで以下のコードを実行してインストーラを呼んでください</p>
-<pre><code class="language-bash">$ curl -fsSL https://github.com/kazanefu/WapL_Compiler/releases/latest/download/installer.sh | bash
-</code></pre>
-<p>成功していれば以下のような出力がされるでしょう:</p>
-<pre><code class="language-bash">Installing WapL toolchain...
-Installation complete!
-Please reload your shell: source ~/.bashrc
-Example: waplup install latest
-Recommendation: if you need syntax highlighting for VScode, visit here https://github.com/kazanefu/WapL_SyntaxHighLight/releases/
-Require: if you don't have Clang installed yet, install it.
-</code></pre>
-<p>続いてwaplupを使ってwaplcをインストールします。バージョンを指定してインストールしたい場合は以下のコマンドの<code>latest</code>をバージョンの数字に置き換えてください</p>
-<pre><code class="language-bash">$ waplup install latest
-</code></pre>
-<p>成功していれば以下のように出るはずです(これはversion 0.1.5をインストールした場合の例です):</p>
-<pre><code class="language-bash">Installed version 0.1.5
-</code></pre>
-<h2 id="トラブルシューティング"><a class="header" href="#トラブルシューティング">トラブルシューティング</a></h2>
-<p>waplcが正常にインストールされているか確認するには以下のコマンドを実行してください:</p>
-<pre><code class="language-bash">$ waplc --version
-</code></pre>
-<p>正常にインストールされていれば以下の形式でデフォルトに設定されているバージョンが表示されるはずです。</p>
-<pre><code class="language-bash">waplc x.y.z
-</code></pre>
-<h2 id="複数のバージョンを管理とアンインストール"><a class="header" href="#複数のバージョンを管理とアンインストール">複数のバージョンを管理とアンインストール</a></h2>
-<p>waplup経由でwaplcをインストールした場合簡単にバージョンの切り替えやアンインストールができます。
-waplを最新のバージョンに更新したい場合は以下のコマンドを実行してください:</p>
-<pre><code class="language-bash">$ waplup update
-</code></pre>
-<p>waplcのデフォルトのバージョンを変更するには以下の形式でバージョンを指定してください:</p>
-<pre><code class="language-bash">$ waplup default x.y.z
-</code></pre>
-<p>インストール済みのwaplcのバージョンを確認するには以下のコマンドを実行してください:</p>
-<pre><code class="language-bash">$ waplup list
-</code></pre>
-<p>現在のデフォルトのバージョンを確認するには以下のコマンドを実行してください:</p>
-<pre><code class="language-bash">$ waplup show
-</code></pre>
-<p>アンインストールする場合は以下のようにバージョンを指定して特定のバージョンのみをアンインストールするか,<code>all</code>を指定してwaplupやwapl-cliも含めてすべてアンインストールすることができます:</p>
-<pre><code class="language-bash">$ waplup uninstall x.y.z
-</code></pre>
-<pre><code class="language-bash">$ waplup uninstall all
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="hello-world"><a class="header" href="#hello-world">Hello, World!</a></h1>
-<p>伝統に従って<code>Hello, World</code>を出力する簡単なコードを書いてみましょう</p>
-<h2 id="プロジェクトのディレクトリを作成する"><a class="header" href="#プロジェクトのディレクトリを作成する">プロジェクトのディレクトリを作成する</a></h2>
-<p>まずはWapLコードを格納するディレクトリを作るところから始めましょう。WapLではどこにプロジェクトを作成するかはたいした問題ではありませんが、この本ではホームディレクトリに<strong>projects</strong>ディレクトリを作成してプロジェクトをすべてそこに保管することを推奨します。</p>
-<p><strong>projects</strong>ディレクトリを作成して,その中に<strong>hello_world</strong>ディレクトリを作成してこれを「Hello, World!」のプロジェクトのディレクトリとします。</p>
-<pre><code class="language-bash">$ mkdir ~/projects
-$ cd ~/projects
-$ mkdir hello_world
-$ cd hello_world
-</code></pre>
-<h2 id="waplプログラムを書いて実行する"><a class="header" href="#waplプログラムを書いて実行する">WapLプログラムを書いて実行する</a></h2>
-<p>次にソースファイルを作り、main.waplというファイルにしてください。WapLのファイルは常に.waplという拡張子で終わります。</p>
-<p>作成したら、main.waplファイルを開き次のコードを入力してください。<br>
-ファイル名:main.wapl</p>
-<pre><code class="language-wapl">fn main():i32{
-    println("Hello, World!");
-    return 0s;
-}
-</code></pre>
-<p>main.waplファイルを保存した<strong>hello_world</strong>ディレクトリにいることを確認して以下のコマンドを打ってファイルをコンパイルして実行してください:</p>
-<pre><code class="language-bash">$ waplc -i main.wapl -o main
-$ ./main
-Hello, World!
-</code></pre>
-<p><code>Hello, World!</code>という文字列が出力できたはずです。この出力が見れない場合は<a href="#インストール">「WapLを導入」</a>に戻ってもう一度手順に漏れや間違いがなかったかを確認してみてください。</p>
-<p><code>Hello, World!</code>が確かに出力されたら、おめでとうございます！これであなたもWapLプログラマーです！ようこそ！</p>
-<h2 id="waplプログラムの解説"><a class="header" href="#waplプログラムの解説">WapLプログラムの解説</a></h2>
-<p>この「Hello, World!」プログラムを詳しく再確認しましょう。こちらが一つ目の要素です:</p>
-<pre><code class="language-wapl">fn main():i32 {
-
-}
-</code></pre>
-<p>これらの行では<code>main</code>という名前の関数を定義しています。WapLでは<code>main</code>は特別な関数で実行可能なWapLプログラムで走る最初のコード、すなわちエントリーポイントになります。ただし、多くの他の言語とは違い、<code>main</code>関数が存在しない場合でもエントリーポイントを任意の関数に指定することができます。引数がある場合は<code>()</code>の内部に入ります。その後に続く<code>:i32</code>は戻り値の型を指定しています。WapLの<code>main</code>関数は常に<code>i32</code>という32bit整数の型の戻り値です。</p>
-<p>関数の本体は<code>{}</code>に囲まれています。</p>
-<p><code>main</code>関数の本体は、こんなコードになっています:</p>
-<pre><code class="language-wapl">    println("Hello, World!");
-    return 0s;
-</code></pre>
-<p>WapLでは複数行にわたる括弧の中身はインデントをするのが基本です。また,式の終わりは<code>;</code>で終わるのが原則です。これらは守らなくても正常に動作はしますが、可読性やコードの意味を明示的に示すために守ることを推奨します。</p>
-<p><code>println</code>は与えられた文字列を標準出力に出力する関数です。ここでは引数に<code>"Hello, World!"</code>を渡しています。</p>
-<p><code>return</code>は戻り値を返しています。<code>return</code>はほとんどのコードを関数呼び出し形式で記述するWapLの中では珍しく<code>return 0s</code>のように半角スペースで区切って戻り値を書きます。ここでは特に意味はないですが<code>0s</code>を返しています。<code>0s</code>はi32型の<code>0</code>のリテラルですが詳しくは第2章で説明します。</p>
-<h2 id="コンパイルと実行は別ステップ"><a class="header" href="#コンパイルと実行は別ステップ">コンパイルと実行は別ステップ</a></h2>
-<p>先ほど打った以下のコマンドの意味について説明します。</p>
-<pre><code class="language-bash">$ waplc -i main.wapl -o main
-$ ./main
-</code></pre>
-<p>WapLコンパイラ版では<code>waplc</code>に<code>-i</code>でソースファイルを、<code>-o</code>で出力する実行ファイルを指定して実行可能ファイルを出力します。そして、二つ目のコマンドで一つ目のコマンドで出力した実行可能ファイルを実行しています。</p>
-<p>PythonやRuby、JavaScriptなどの動的言語に造詣が深いなら、プログラムのコンパイルと実行を個別の手順で行うことに慣れていない可能性があります。WapLコンパイラ版は<strong>AOTコンパイル</strong>(ahead-of-time;<code>訳注</code>:予め)言語です。つまり、実行可能ファイルを誰かにあげ、受け取った人がWapLをインストールしていなくても実行できるわけです。.py、.rb、.jsファイルをあげたら、それぞれPython、Ruby、JavaScriptの処理系がインストールされている必要があります。</p>
-<p>簡単なプロジェクトなら<code>waplc</code>でコンパイルするだけでも十分ですが、wapl-cliを使うことでもっと簡単にプロジェクトの作成、ビルド、標準ライブラリなどをできるようになります。次は、wapl-cliについて紹介します。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="wapl-cliを使う"><a class="header" href="#wapl-cliを使う">wapl-cliを使う</a></h1>
-<p>wapl-cliはWapLプロジェクトの作成、標準ライブラリの取得、ビルド/リリースビルドを簡単にすることができるCLIツールです。これによってプロジェクトの開始からリリースまでより簡単にできるようになります。以降はwapl-cliを使用することを想定しています。まずはwapl-cliが使える状態にあるか確認してください。</p>
-<pre><code class="language-bash">$ wapl-cli --help
-wapl-cli commands:
-  new &lt;name&gt;
-  build
-  std_load
-  run
-</code></pre>
-<p>このようにwapl-cliのコマンド一覧が出てきたら成功です。もし失敗したら場合は<a href="#インストール">「WapLを導入」</a>に戻ってインストーラを呼んでください。</p>
-<h2 id="wapl-cliでプロジェクトを作成する"><a class="header" href="#wapl-cliでプロジェクトを作成する">wapl-cliでプロジェクトを作成する</a></h2>
-<p>wapl-cliを使って新しいプロジェクトを作成しましょう。まずは<strong>projects</strong>ディレクトリに戻ってください。ここではとりあえず名前を<strong>hello_wapl_cli</strong>という名前でプロジェクトを作成します。</p>
-<pre><code class="language-bash">$ wapl-cli new hello_wapl_cli
-$ cd hello_wapl_cli
-</code></pre>
-<p>これによって<strong>hello_wapl_cli</strong>という名前のプロジェクトを作成できました。<strong>hello_wapl_cli</strong>ディレクトリの中は以下のようになってるはずです。</p>
-<pre><code class="language-bash">.
-├── src
-│   └── main.wapl
-├── std
-│   ├── HelloWorld.wapl
-│   ├── String.wapl
-│   ├── VecT.wapl
-│   ├── allstd.wapl
-│   ├── assign_and_cal.wapl
-│   ├── iterator.wapl
-│   ├── longinput.wapl
-│   ├── math.wapl
-│   ├── sort.wapl
-│   ├── time.wapl
-│   └── utility.wapl
-├── target
-└── wapl.toml
-</code></pre>
-<p><strong>src</strong>にmain.waplがあり、main.waplには以下のコードが書かれています。</p>
-<pre><code class="language-wapl">fn main():i32{ println("Hello, WapL!"); return 0s; }
-</code></pre>
-<p>また、<strong>std</strong>には標準ライブラリが入っています。</p>
-<blockquote>
-<p>注釈:上記の標準ライブラリの中身はバージョン0.1.5時点のものです。バージョンによって内容物が異なってる場合があります。</p>
-</blockquote>
-<p>また、<strong>target</strong>というディレクトリも作られています。ここにはwapl-cliを使ってビルドした実行ファイルが保存される場所になります。</p>
-<p>そして<strong>wapl.toml</strong>にはビルド設定が書かれています。中身は以下のようになっています:</p>
-<pre><code class="language-toml">[build]
-input = "src/main.wapl"
-output = "target/hello_wapl_cli"
-opt = "O2"
-clang = "clang"
-
-[release]
-input = "src/main.wapl"
-output = "target/hello_wapl_cli"
-opt = "O3"
-clang = "clang"
-</code></pre>
-<h2 id="wapl-cliでビルド実行する"><a class="header" href="#wapl-cliでビルド実行する">wapl-cliでビルド/実行する</a></h2>
-<p><strong>hello_wapl_cli</strong>ディレクトリにいることを確認して以下のコマンドで<code>main.wapl</code>のコードをビルドします。</p>
-<pre><code class="language-bash">$ wapl-cli build
-LLVM IR output: ./src/main.ll
-Build success! → ./target/hello_wapl_cli
-Build complete: ./target/hello_wapl_cli
-</code></pre>
-<p>のように出れば成功です。場合によっては以下のように警告が出ることがありますが動作には問題ありません。</p>
-<pre><code class="language-bash">warning: overriding the module target triple with xxx [-Woverride-module]
-1 warning generated.
-</code></pre>
-<p>ビルドしたことで<code>./target/hello_wapl_cli</code>にプロジェクトの名前で実行可能ファイルが作られ、<code>./src/main.ll</code>に中間言語のLLVM IRのファイルが生成されます。もし他の言語で作ったものでWapLで作ったものとリンクさせたい場合はこのIRを使うことができます。</p>
-<p>以下のように実行することができます。</p>
-<pre><code class="language-bash">$ ./target/hello_wapl_cli 
-Hello, WapL!
-</code></pre>
-<p>先ほど<code>wapl-cli build</code>でビルドし、<code>./target/hello_wapl_cli </code>で実行しましたが、<code>wapl-cli run</code>でこの二つを一つのコマンドですることもできます。</p>
-<pre><code class="language-bash">$ wapl-cli run
-LLVM IR output: ./src/main.ll
-Build success! → ./target/hello_wapl_cli
-Build complete: ./target/hello_wapl_cli
-Hello, WapL!
-</code></pre>
-<p>リリースに向けてビルドする場合は<code>wapl-cli release</code>を使います。これにより、ClangのO3相当の最適化をした状態でビルドをすることができますが、<code>wapl-cli build</code>と比較してビルドには時間が長くなるため、<code>wapl-cli build</code>は開発時に素早く頻繁に再ビルドしたいとき用で、<code>wapl-cli release</code>は最終的なビルドのとき用です。</p>
-<p>wapl-cliはたいていの場合waplcを直接使うより便利ですが、内部で使用するClangの指定や実行ファイルを作らずにIRのみ作成、デバッグ用にASTをすべて出力するなどの細かい設定をしたい場合はwaplcを直接使う必要があります。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="一般的なプログラミングの概念"><a class="header" href="#一般的なプログラミングの概念">一般的なプログラミングの概念</a></h1>
-<p>この章では、ほとんどの言語で見られる概念の説明と、WapLにおけるそれらの動作について見ていきます。概念は多くの言語で同じものを共有しますが、記述方法や細かい挙動は異なるものも多いです。これらの概念のWapLにおける仕様の説明をします。</p>
-<p>具体的には、変数、基本的な型、関数、コメント、制御フローについて説明します。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="変数"><a class="header" href="#変数">変数</a></h1>
-<p>WapLコンパイラ版では変数の宣言時に型を明示的に記述する必要があり、宣言時にスタック上にメモリ確保をします。また、初期値の代入は宣言と同時に行う必要はありませんが、値を読み取るまでには代入をしてください</p>
-<pre><code class="language-wapl">fn main():i32{
-    #=(x,10,i64);
-    println(format("%d",x));
-    =(x,5);
-    println(format("%d",x));
-    #=(y,_,i64);
-    =(y,0);
-    println(format("%d",y));
-    return 0s;
-}
-</code></pre>
-<p>実行すると以下のような出力が得られます。</p>
-<pre><code class="language-bash">10
-5
-0
-</code></pre>
-<p>このように変数の宣言は<code>#=(変数名,初期値,型)</code>の形式で行います。また、初期値なしで宣言する場合は<code>_</code>を初期値の入れます。また、代入は<code>=(変数,値)</code>という形式で記述します。宣言に伴う初期値、代入する値ともに一部例外を除いて型が変数の型と一致する必要があります。</p>
-<pre><code class="language-wapl">fn main():i32{
-    #=(x,_,i64);
-    println(format("%d",x));// 代入されてないので0が出力される.
-    return 0s;
-}
-</code></pre>
-<p>このように値を代入せずに読み取るとエラーは出ませんが思わぬ値が渡される可能性があるので必ず読み取る前に値を代入するようにします。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="基本的な型"><a class="header" href="#基本的な型">基本的な型</a></h1>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="関数"><a class="header" href="#関数">関数</a></h1>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="コメント"><a class="header" href="#コメント">コメント</a></h1>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="制御フロー"><a class="header" href="#制御フロー">制御フロー</a></h1>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="付録"><a class="header" href="#付録">付録</a></h1>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="waplコンパイラの作り方"><a class="header" href="#waplコンパイラの作り方">WapLコンパイラの作り方</a></h1>
+                        <h1 id="waplコンパイラの作り方"><a class="header" href="#waplコンパイラの作り方">WapLコンパイラの作り方</a></h1>
 <h2 id="環境"><a class="header" href="#環境">環境:</a></h2>
 <ul>
 <li>WSL2: Ubuntu24.04</li>
@@ -1586,27 +1340,18 @@ pub struct ScopeOwner {
 <span class="boring">}</span></code></pre>
 <p>まず最初に<code>_TOPLEVEL_</code>の宣言をしてその後,関数か構造体か関数の宣言かのコンパイルを順に呼び出していきます。そして最後にトップレベルにある式を<code>_TOPLEVEL_</code>にまとめています。</p>
 <p>この本でのWapLコンパイラの作り方の説明は一旦ここまでにしておきます。ソースコードは<a href="https://github.com/kazanefu/WapL_Compiler">https://github.com/kazanefu/WapL_Compiler</a>で公開されているので興味があれば見てみてください。もし問題点を見つけたり改善をしてくれたら遠慮なく報告していただけるとありがたいです。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="clangllvm--21のインストールubuntu系想定"><a class="header" href="#clangllvm--21のインストールubuntu系想定">Clang/LLVM -21のインストール(Ubuntu系想定)</a></h1>
-<p>以下のコマンドを順に打って最後に<code>clang-21 --version</code>でバージョンが出力されたら成功です。</p>
-<pre><code class="language-bash">$ sudo apt update
-</code></pre>
-<pre><code class="language-bash">$ sudo apt install -y wget gnupg
-</code></pre>
-<pre><code class="language-bash">$ wget https://apt.llvm.org/llvm.sh
-</code></pre>
-<pre><code class="language-bash">$ chmod +x llvm.sh
-</code></pre>
-<pre><code class="language-bash">$ sudo ./llvm.sh 21
-</code></pre>
-<pre><code class="language-bash">$ clang-21 --version
-</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="huroku.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
 
+                            <a rel="next prefetch" href="howtoinstallclang.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -1614,7 +1359,13 @@ pub struct ScopeOwner {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="huroku.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
 
+                    <a rel="next prefetch" href="howtoinstallclang.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
@@ -1645,11 +1396,6 @@ pub struct ScopeOwner {
         <script src="theme/wapl-6b44a6eb.js"></script>
         <script src="theme/wapl-rainbow-f254588b.js"></script>
 
-        <script>
-        window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
-        });
-        </script>
 
 
     </div>

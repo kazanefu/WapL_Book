@@ -35,7 +35,8 @@ $ cd hello_wapl_cli
 │   ├── sort.wapl
 │   ├── time.wapl
 │   └── utility.wapl
-└── target
+├── target
+└── wapl.toml
 ```
 **src**にmain.waplがあり、main.waplには以下のコードが書かれています。
 ```wapl
@@ -45,6 +46,21 @@ fn main():i32{ println("Hello, WapL!"); return 0s; }
 >注釈:上記の標準ライブラリの中身はバージョン0.1.5時点のものです。バージョンによって内容物が異なってる場合があります。
 
 また、**target**というディレクトリも作られています。ここにはwapl-cliを使ってビルドした実行ファイルが保存される場所になります。
+
+そして**wapl.toml**にはビルド設定が書かれています。中身は以下のようになっています:
+```toml
+[build]
+input = "src/main.wapl"
+output = "target/hello_wapl_cli"
+opt = "O2"
+clang = "clang"
+
+[release]
+input = "src/main.wapl"
+output = "target/hello_wapl_cli"
+opt = "O3"
+clang = "clang"
+```
 
 ## wapl-cliでビルド/実行する
 

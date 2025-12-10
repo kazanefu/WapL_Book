@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4fcd170c.js";
+            window.path_to_searchindex_js = "searchindex-e254d48f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2229194e.js"></script>
+        <script src="toc-b88c102b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,7 +204,7 @@
 <p>まず、Githubのreleaseからインストーラを起動してwaplupとwapl-cliをインストールします。その後、waplupを使ってコンパイラwaplcをインストールします</p>
 <h2 id="linuxにインストールする"><a class="header" href="#linuxにインストールする">Linuxにインストールする</a></h2>
 <blockquote>
-<p>注:WapLでは内部でClangを使うので事前にインストールしておいてください。もし関数がリンクできない等のエラーが出る場合はCのライブラリが不足している可能性がありますので確認してください。WapLではClangは2025/12/7現在21.1.6を推奨しています</p>
+<p>注:WapLでは内部でClangを使うので事前にインストールしておいてください。もし関数がリンクできない等のエラーが出る場合はCのライブラリが不足している可能性がありますので確認してください。WapLではClangは2025/12/7現在21を推奨しています</p>
 </blockquote>
 <p>bashで以下のコードを実行してインストーラを呼んでください</p>
 <pre><code class="language-bash">$ curl -fsSL https://github.com/kazanefu/WapL_Compiler/releases/latest/download/installer.sh | bash
@@ -331,7 +331,8 @@ $ cd hello_wapl_cli
 │   ├── sort.wapl
 │   ├── time.wapl
 │   └── utility.wapl
-└── target
+├── target
+└── wapl.toml
 </code></pre>
 <p><strong>src</strong>にmain.waplがあり、main.waplには以下のコードが書かれています。</p>
 <pre><code class="language-wapl">fn main():i32{ println("Hello, WapL!"); return 0s; }
@@ -341,6 +342,19 @@ $ cd hello_wapl_cli
 <p>注釈:上記の標準ライブラリの中身はバージョン0.1.5時点のものです。バージョンによって内容物が異なってる場合があります。</p>
 </blockquote>
 <p>また、<strong>target</strong>というディレクトリも作られています。ここにはwapl-cliを使ってビルドした実行ファイルが保存される場所になります。</p>
+<p>そして<strong>wapl.toml</strong>にはビルド設定が書かれています。中身は以下のようになっています:</p>
+<pre><code class="language-toml">[build]
+input = "src/main.wapl"
+output = "target/hello_wapl_cli"
+opt = "O2"
+clang = "clang"
+
+[release]
+input = "src/main.wapl"
+output = "target/hello_wapl_cli"
+opt = "O3"
+clang = "clang"
+</code></pre>
 <h2 id="wapl-cliでビルド実行する"><a class="header" href="#wapl-cliでビルド実行する">wapl-cliでビルド/実行する</a></h2>
 <p><strong>hello_wapl_cli</strong>ディレクトリにいることを確認して以下のコマンドで<code>main.wapl</code>のコードをビルドします。</p>
 <pre><code class="language-bash">$ wapl-cli build
@@ -368,6 +382,1225 @@ Hello, WapL!
 <p>wapl-cliはたいていの場合waplcを直接使うより便利ですが、内部で使用するClangの指定や実行ファイルを作らずにIRのみ作成、デバッグ用にASTをすべて出力するなどの細かい設定をしたい場合はwaplcを直接使う必要があります。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="一般的なプログラミングの概念"><a class="header" href="#一般的なプログラミングの概念">一般的なプログラミングの概念</a></h1>
+<p>この章では、ほとんどの言語で見られる概念の説明と、WapLにおけるそれらの動作について見ていきます。概念は多くの言語で同じものを共有しますが、記述方法や細かい挙動は異なるものも多いです。これらの概念のWapLにおける仕様の説明をします。</p>
+<p>具体的には、変数、基本的な型、関数、コメント、制御フローについて説明します。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="変数"><a class="header" href="#変数">変数</a></h1>
+<p>WapLコンパイラ版では変数の宣言時に型を明示的に記述する必要があり、宣言時にスタック上にメモリ確保をします。また、初期値の代入は宣言と同時に行う必要はありませんが、値を読み取るまでには代入をしてください</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x,10,i64);
+    println(format("%d",x));
+    =(x,5);
+    println(format("%d",x));
+    #=(y,_,i64);
+    =(y,0);
+    println(format("%d",y));
+    return 0s;
+}
+</code></pre>
+<p>実行すると以下のような出力が得られます。</p>
+<pre><code class="language-bash">10
+5
+0
+</code></pre>
+<p>このように変数の宣言は<code>#=(変数名,初期値,型)</code>の形式で行います。また、初期値なしで宣言する場合は<code>_</code>を初期値の入れます。また、代入は<code>=(変数,値)</code>という形式で記述します。宣言に伴う初期値、代入する値ともに一部例外を除いて型が変数の型と一致する必要があります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x,_,i64);
+    println(format("%d",x));// 代入されてないので0が出力される.
+    return 0s;
+}
+</code></pre>
+<p>このように値を代入せずに読み取るとエラーは出ませんが思わぬ値が渡される可能性があるので必ず読み取る前に値を代入するようにします。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="基本的な型"><a class="header" href="#基本的な型">基本的な型</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="関数"><a class="header" href="#関数">関数</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="コメント"><a class="header" href="#コメント">コメント</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="制御フロー"><a class="header" href="#制御フロー">制御フロー</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="付録"><a class="header" href="#付録">付録</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="waplコンパイラの作り方"><a class="header" href="#waplコンパイラの作り方">WapLコンパイラの作り方</a></h1>
+<h2 id="環境"><a class="header" href="#環境">環境:</a></h2>
+<ul>
+<li>WSL2: Ubuntu24.04</li>
+<li>Rust 1.91.1</li>
+<li>Clang/LLVM 21.1.6</li>
+<li>inkwell 0.7.1</li>
+</ul>
+<p><strong>Rustをインストール</strong></p>
+<pre><code class="language-bash">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+</code></pre>
+<p>バージョン確認</p>
+<pre><code class="language-bash">rustc --version
+cargo --version
+</code></pre>
+<p><strong>LLVMのビルドとかで必要なものたちをインストール</strong></p>
+<pre><code class="language-bash">sudo apt install -y build-essential cmake ninja-build git python3 libffi-dev
+</code></pre>
+<p><strong>LLVM 21.1.6 のソースコードをダウンロード</strong></p>
+<pre><code class="language-bash">cd ~
+git clone https://github.com/llvm/llvm-project.git --branch llvmorg-21.1.6 --depth=1
+</code></pre>
+<p><strong>LLVM をビルド</strong></p>
+<pre><code class="language-bash">cd ~/llvm-project
+mkdir build
+cd build
+
+cmake -G Ninja ../llvm \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_ENABLE_PROJECTS="clang;lld;polly" \
+    -DLLVM_TARGETS_TO_BUILD="X86" \
+    -DLLVM_ENABLE_RTTI=ON \
+    -DLLVM_ENABLE_EH=ON \
+    -DLLVM_ENABLE_TERMINFO=OFF \
+    -DLLVM_ENABLE_Z3_SOLVER=OFF \
+    -DLLVM_ENABLE_BINDINGS=OFF \
+    -DLLVM_ENABLE_LIBXML2=OFF \
+    -DLLVM_ENABLE_ZSTD=OFF \
+    -DLLVM_ENABLE_ASSERTIONS=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr/local/llvm-21
+</code></pre>
+<pre><code class="language-bash">ninja -j$(nproc)
+</code></pre>
+<p>ビルドには少し時間がかかります</p>
+<p><strong>LLVMをインストール</strong></p>
+<pre><code class="language-bash">sudo ninja install
+</code></pre>
+<p><strong>パスを通す</strong></p>
+<pre><code class="language-bash">echo 'export PATH=/usr/local/llvm-21/bin:$PATH' &gt;&gt; ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/llvm-21/lib:$LD_LIBRARY_PATH' &gt;&gt; ~/.bashrc
+echo 'export LLVM_SYS_210_PREFIX=/usr/local/llvm-21' &gt;&gt; ~/.bashrc
+source ~/.bashrc
+</code></pre>
+<p>バージョン確認</p>
+<pre><code>Clang --version
+llvm-config --version
+</code></pre>
+<h2 id="waplコンパイラの大まかな設計"><a class="header" href="#waplコンパイラの大まかな設計">WapLコンパイラの大まかな設計</a></h2>
+<pre><code>1.コードを書いたファイルを文字列として読み込む
+↓
+2.文字列からトークン列に変換する
+↓
+3.トークン列から抽象構文木(Abstruct Syntax Tree以後AST)を作る
+↓
+4.ASTから意味解析や超簡易的な所有権/借用のチェックと同時に中間言語としてLLVM IRを生成
+↓
+6.LLVM IRをClangに投げて最適化や実行ファイルの作成をしてもらう
+</code></pre>
+<p>一応2~4についてそれぞれ軽く説明します。</p>
+<h3 id="2文字列からトークン列に変換する"><a class="header" href="#2文字列からトークン列に変換する">2.文字列からトークン列に変換する</a></h3>
+<pre><code class="language-wapl">fn main():i32{
+    println("Hello, world!");
+    return 0s;
+}
+</code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>0:Fn
+1:Ident("main")
+2:Lsep(LParen)
+3:Rsep(RParen)
+4:Colon
+5:Ident("i32")
+6:Lsep(LBrace)
+7:Ident("println")
+8:Lsep(LParen)
+9:StringLiteral("Hello, world!")
+10:Rsep(RParen)
+11:Semicolon
+12:Return
+13:IntshortNumber(0)
+14:Semicolon
+15:Rsep(RBrace)
+<span class="boring">}</span></code></pre>
+<p>文字列からトークン列に変換する段階では上のように文字列を<strong>意味のある最小単位</strong>に分割していきます。
+WapLではトークンは大きく<strong>識別子</strong>,<strong>定数値</strong>,<strong>予約語</strong>,<strong>区切り記号</strong>の4種類があり、一般的な言語にある<strong>演算子</strong>などはすべて識別子に統合されています。これはほとんどすべて関数呼び出しの記法と同じ記法で書くため演算子も関数名として扱ってしまうことができるからです。</p>
+<p>WapLでのトークンの構成</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, PartialEq)]
+pub enum Token {
+    //識別子
+    Ident(String), //変数名や関数名
+    //定数値
+    IntNumber(i64), //整数値
+    FloatNumber(f64), //浮動小数点数
+    IntshortNumber(i32),// 32bit整数
+    FloatshortNumber(f32),// 32bit 浮動小数点数
+    StringLiteral(String), //ダブルクォーテーションで囲んだ文字列
+    CharLiteral(char), //シングルクォーテーションで囲んだ文字
+    BoolLiteral(bool), // true と false
+    // キーワード
+    ArrayCall, // Array(e1,e2,e3,...)のように配列を書くため他の関数呼び出しとの区別用
+    Fn, //関数 fn
+    Struct, //構造体 struct
+    Point, //ラベル設置 point
+    Warpto, //ジャンプ warpto
+    WarptoIf, //条件付きジャンプ warptoif
+    Return, //戻り値 return
+    Import, //他ファイルを取り込む use
+    LoopIf, //名前&amp;条件付き繰り返し loopif
+    Declare, //関数の宣言のみ declare
+    //記号や括弧
+    Comma,// ","
+    Semicolon, // ";"
+    Colon, // ":"
+    Lsep(LSeparator), //括弧の左側
+    Rsep(RSeparator), //括弧の右側
+
+    EOF, // 終わり
+}
+#[derive(Debug, Clone, PartialEq)]
+pub enum LSeparator {
+    LParen, // "("
+    LBrace, // "{"
+}
+#[derive(Debug, Clone, PartialEq)]
+pub enum RSeparator {
+    RParen, // ")"
+    RBrace, // "}"
+}
+<span class="boring">}</span></code></pre>
+<h3 id="3トークン列からastを作る"><a class="header" href="#3トークン列からastを作る">3.トークン列からASTを作る</a></h3>
+<p>2.で生成したトークン列は以下のように変換されます</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Function(
+    Function { 
+        name: "main", 
+        return_type: Ident("i32"), 
+        args: [], 
+        body: [
+            Stmt { 
+                expr: Call { 
+                    name: "_TOPLEVEL_", 
+                    args: [] 
+                } 
+            }, 
+            Stmt { 
+                expr: Call { 
+                    name: "println", 
+                    args: [
+                        String("Hello, world!")
+                    ] 
+                } 
+            }, 
+            Stmt { 
+                expr: Return([
+                    IntSNumber(0)
+                ]) 
+            }
+        ] 
+    }
+)
+<span class="boring">}</span></code></pre>
+<blockquote>
+<p>注:WapLでは<code>main</code>関数の初めに<code>_TOPLEVEL_</code>を呼んで関数の外に書いた処理を先に行うため自動で<code>_TOPLEVEL_</code>が加えられている。</p>
+</blockquote>
+<p>このようにトークン列をASTにすることで上のように構造を持たせてトークンどうしの関係を表現することができます。WapLでのASTの構造は以下のように定義されています。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone)]
+pub enum Expr {
+    IntNumber(i64),          //i64リテラル
+    FloatNumber(f64),        //f64リテラル
+    IntSNumber(i32),         //i32リテラル
+    FloatSNumber(f32),       //f32リテラル
+    String(String),          //文字列リテラル
+    Char(char),              //charリテラル
+    Bool(bool),              //boolリテラル
+    ArrayLiteral(Vec&lt;Expr&gt;), //Array(e1,e2,e3,...)という形の配列リテラル
+    Ident(String),           //変数名,型名,ワープに使うラベル名前などStringではない文字列
+    Return(Vec&lt;Expr&gt;),       //関数の返り値
+    Point(Vec&lt;Expr&gt;),        //ワープに使うラベル
+    Call {
+        name: String,
+        args: Vec&lt;Expr&gt;,
+    }, //関数呼び出し
+    Warp {
+        name: String,
+        args: Vec&lt;Expr&gt;,
+    }, //warpto,warptoif
+    StructVal {
+        _name: String,
+        _args: Vec&lt;Expr&gt;,
+    }, //structの実体
+    TypeApply {
+        base: String,
+        args: Vec&lt;Expr&gt;,
+    }, //ptr:typeとかのbase:type複雑な型
+    Loopif {
+        name: String,
+        cond: Vec&lt;Expr&gt;,
+        body: Vec&lt;Stmt&gt;,
+    }, //loopif:name(cond){do}
+}
+#[derive(Debug, Clone)]
+pub struct Stmt {
+    pub expr: Expr,
+}
+#[derive(Debug, Clone)]
+pub enum TopLevel {
+    Function(Function),
+    Struct(Struct),
+    Declare(Declare),
+}
+#[derive(Debug, Clone)]
+pub struct Declare {
+    pub name: String,
+    pub return_type: Expr,
+    pub args: Vec&lt;Expr&gt;,
+    pub is_vararg: bool,
+}
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub name: String,
+    pub return_type: Expr,
+    pub args: Vec&lt;(Expr, Expr)&gt;, //(type,name)
+    pub body: Vec&lt;Stmt&gt;,
+}
+#[derive(Debug, Clone)]
+pub struct Struct {
+    pub name: String,
+    pub _return_type: Expr,
+    pub args: Vec&lt;(Expr, Expr)&gt;, //(type,name)
+}
+
+#[derive(Debug, Clone)]
+pub struct Program {
+    pub functions: Vec&lt;TopLevel&gt;, //functions &amp; structs &amp; toplevel call
+    pub has_main: bool,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="4中間言語llvm-irを生成"><a class="header" href="#4中間言語llvm-irを生成">4.中間言語LLVM IRを生成</a></h3>
+<pre><code class="language-llvm">; ModuleID = 'wapl_module'
+source_filename = "wapl_module"
+
+@str_0 = private unnamed_addr constant [14 x i8] c"Hello, world!\00", align 1
+@println_fmt_1 = private unnamed_addr constant [4 x i8] c"%s\0A\00", align 1
+
+declare i64 @strtol(ptr, ptr, i32)
+
+declare double @atof(ptr)
+
+declare i32 @printf(ptr, ...)
+
+declare i32 @sprintf(ptr, ptr, ...)
+
+declare ptr @realloc(ptr, i64)
+
+declare ptr @malloc(i64)
+
+declare void @free(ptr)
+
+declare i32 @scanf(ptr, ...)
+
+define i32 @_TOPLEVEL_() {
+entry:
+  ret i32 0
+}
+
+define i32 @main() {
+entry:
+  %ret_val = alloca i32, align 4
+  %calltmp = call i32 @_TOPLEVEL_()
+  %printf = call i32 (ptr, ...) @printf(ptr @println_fmt_1, ptr @str_0)
+  ret i32 0
+}
+</code></pre>
+<p>この段階では3.で生成したASTから意味を読み取り,それに合わせてLLVM IRを生成します。WapLではデフォルトでラッパーを用意しているCの関数の宣言をや文字列リテラル、<code>_TOPLEVEL_</code>関数などが最初に作られて、その後、実際にWapLで書いたプログラムが書かれます。<code>main</code>では、<code>entry</code>ブロックを設置、戻り値のためのメモリを一応確保(初期は<code>return</code>を書かないでもいいようにする設計だった名残で今はほとんど死んでる)、<code>_TOPLEVEL_</code>を呼ぶ、<code>println</code>はC言語の<code>printf</code>のラッパーなので<code>printf</code>を呼ぶ、<code>0</code>を返すということが書かれています。</p>
+<h2 id="トークン列の生成"><a class="header" href="#トークン列の生成">トークン列の生成</a></h2>
+<p>では具体的にどのようにトークン列を生成しているのか見てみましょう。
+まずトークンを作る構造体を以下のように定義します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Tokenizer {
+    chars: Vec&lt;char&gt;,
+    pos: usize,
+}
+
+impl Tokenizer{
+    pub fn new(input: &amp;str) -&gt; Self {
+        Self {
+            chars: input.chars().collect(),
+            pos: 0,
+        }
+    }
+    fn peek(&amp;self) -&gt; Option&lt;char&gt; {
+        self.chars.get(self.pos).cloned()
+    }
+
+    fn next_char(&amp;mut self) -&gt; Option&lt;char&gt; {
+        let ch = self.peek()?;
+        self.pos += 1;
+        Some(ch)
+    }
+
+    fn match_next(&amp;mut self, expected: char) -&gt; bool {
+        if self.peek() == Some(expected) {
+            self.pos += 1;
+            true
+        } else {
+            false
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>new</code>で初期化、<code>peek</code>で今いる場所の文字を読み取り、<code>next_char</code>で今いる場所の文字を読み取って文字を一つ進める、<code>match_next</code>で今いる場所の文字が期待するものと一致すれば進める。というように基本的な動きを定義します。</p>
+<p>次に、<code>impl Tokenizer</code>に空白とコメントを飛ばすメソッドを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn skip_whitespace(&amp;mut self) {
+    while let Some(c) = self.peek() {
+        if c.is_whitespace() {
+            self.pos += 1;
+        } else {
+            self.skip_comment();
+            break;
+        }
+    }
+}
+fn skip_comment(&amp;mut self) {
+    loop {
+        if self.peek() != Some('/') || self.chars.get(self.pos + 1) != Some(&amp;'/') {
+            return;
+        }
+
+        self.pos += 2;
+
+        while let Some(c) = self.peek() {
+            self.pos += 1;
+            if c == '\n' {
+                break;
+            }
+        }
+
+        self.skip_whitespace();
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>skip_whitespace</code>では文字が空白である限り進め、空白ではなくなったときにコメントがあればそれもスキップするようにしています。<code>skip_comment</code>では<code>//</code>を見つけてその分の2文字進めて改行が来るまで進め続けて改行が来たら空白をスキップしてまたコメントが来ないか確認するということを繰り返して、コメントじゃないのが来たら終わります。</p>
+<p>次に、文字列や文字のリテラルをトークンにするメソッドを<code>impl Tokenizer</code>に追加します。ファイルや標準入力などから受け取った文字列は<code>"\n"</code>が<code>"\\n"</code>になってたりなどするのでそれを書いた通りの形に戻したり、<code>\x61</code>や<code>\u{A66E}</code>のように文字コードでの入力をできるようにします。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn string_and_char_tokenize(&amp;mut self) -&gt; String {
+    let mut s = String::new();
+    while let Some(c) = self.next_char() {
+        if c == '"' || c == '\'' {
+            break;
+        }
+        if c != '\\' {
+            s.push(c);
+            continue;
+        }
+
+        if self.match_next('n') {
+            s.push('\n');
+        } else if self.match_next('0') {
+            s.push('\0');
+        } else if self.match_next('\\') {
+            s.push('\\');
+        } else if self.match_next('r') {
+            s.push('\r');
+        } else if self.match_next('t') {
+            s.push('\t');
+        } else if self.match_next('"') {
+            s.push('"');
+        } else if self.match_next('x') {
+            let h1 = self.next_char().unwrap();
+            let h2 = self.next_char().unwrap();
+            let byte = u8::from_str_radix(&amp;format!("{}{}", h1, h2), 16).unwrap();
+            s.push(byte as char);
+        } else if self.match_next('u') {
+            if self.match_next('{') {
+                let mut hex = String::new();
+
+                while let Some(cc) = self.next_char() {
+                    if cc == '}' {
+                        break;
+                    }
+                    hex.push(cc);
+                }
+                let cp = u32::from_str_radix(&amp;hex, 16).unwrap();
+                let cch = char::from_u32(cp).unwrap();
+                s.push(cch);
+            } else {
+                s.push('\\');
+                s.push('u');
+            }
+        } else {
+            s.push(c);
+        }
+    }
+    s
+}
+<span class="boring">}</span></code></pre>
+<p>見ての通り<code>'\\'</code>が来たらその場所を置き換えるようにしています。</p>
+<p>最後にこれらのメソッドを使ってトークンを作ってトークン列に追加していくメソッドを追加します。まず空白とコメントをスキップして、次に文字があるかを確かめ、その後、文字列リテラルか-&gt;文字リテラルか-&gt;数値リテラルか(もしそうだとしたら整数か浮動小数点数かまた何ビットか)-&gt;識別子やキーワード-&gt;括弧や記号、といった順で確かめていきトークン列に追加するということをしています。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn next_token(&amp;mut self) -&gt; Token {
+    loop {
+        self.skip_whitespace();
+        self.skip_comment();
+        break;
+    }
+
+    let ch = match self.next_char() {
+        Some(c) =&gt; c,
+        None =&gt; return Token::EOF,
+    };
+
+    // ----- String -----
+    if ch == '"' {
+        return Token::StringLiteral(self.string_and_char_tokenize());
+    }
+    //----char-----
+    if ch == '\'' {
+        let c = self.string_and_char_tokenize().chars().collect::&lt;Vec&lt;_&gt;&gt;()[0];
+        return Token::CharLiteral(c);
+    }
+
+    // ----- Number -----
+    if ch.is_ascii_digit() || ch == '-' {
+        let mut s = ch.to_string();
+        let mut is_float = false;
+        let mut is_short = false;
+        while let Some(c) = self.peek() {
+            if c.is_ascii_digit() || c == '.' ||c=='s'{
+                if c == '.' {
+                    is_float = true;
+                }
+                if c == 's'{
+                    is_short = true;
+                    self.pos += 1;
+                    break;
+                }
+                s.push(c);
+                self.pos += 1;
+            } else {
+                break;
+            }
+        }
+        if s != "-" {
+            if is_float {
+                return if !is_short{Token::FloatNumber(s.parse::&lt;f64&gt;().unwrap())}else{Token::FloatshortNumber(s.parse::&lt;f32&gt;().unwrap())};
+            } else {
+                return if !is_short{Token::IntNumber(s.parse::&lt;i64&gt;().unwrap())}else{Token::IntshortNumber(s.parse::&lt;i32&gt;().unwrap())};
+            }
+        }
+    }
+
+    // ----- Identifier / Keyword -----
+    if !ch.is_ascii_digit()
+        &amp;&amp; ch != ','
+        &amp;&amp; ch != ';'
+        &amp;&amp; ch != '{'
+        &amp;&amp; ch != '}'
+        &amp;&amp; ch != '('
+        &amp;&amp; ch != ')'
+        &amp;&amp; ch != ':'
+    {
+        let mut s = ch.to_string();
+        while let Some(c) = self.peek() {
+            if c != ','
+                &amp;&amp; c != ';'
+                &amp;&amp; c != '{'
+                &amp;&amp; c != '}'
+                &amp;&amp; c != '('
+                &amp;&amp; c != ')'
+                &amp;&amp; c != ' '
+                &amp;&amp; c != ':'
+                &amp;&amp; c != '\n'
+            {
+                s.push(c);
+                self.pos += 1;
+            } else {
+                break;
+            }
+        }
+
+        return match s.as_str() {
+            "fn" =&gt; Token::Fn,
+            "struct" =&gt; Token::Struct,
+            "point" =&gt; Token::Point,
+            "warpto" =&gt; Token::Warpto,
+            "warptoif" =&gt; Token::WarptoIf,
+            "true" =&gt; Token::BoolLiteral(true),
+            "false" =&gt; Token::BoolLiteral(false),
+            "return" =&gt; Token::Return,
+            "Array" =&gt; Token::ArrayCall,
+            "import" | "use" =&gt; Token::Import,
+            "loopif" =&gt; Token::LoopIf,
+            "declare" =&gt; Token::Declare,
+            _ =&gt; Token::Ident(s),
+        };
+    }
+
+    // ----- Operators / Signs -----
+    match ch {
+        ',' =&gt; Token::Comma,
+        ';' =&gt; Token::Semicolon,
+        ':' =&gt; Token::Colon,
+        '(' =&gt; Token::Lsep(LSeparator::LParen),
+        ')' =&gt; Token::Rsep(RSeparator::RParen),
+        '{' =&gt; Token::Lsep(LSeparator::LBrace),
+        '}' =&gt; Token::Rsep(RSeparator::RBrace),
+        _ =&gt; Token::EOF,
+    }
+}
+
+pub fn tokenize(&amp;mut self) -&gt; Vec&lt;Token&gt; {
+    let mut tokens = Vec::new();
+
+    loop {
+        let t = self.next_token();
+        if t == Token::EOF {
+            break;
+        }
+        tokens.push(t);
+    }
+
+    tokens
+}
+<span class="boring">}</span></code></pre>
+<h2 id="astの生成"><a class="header" href="#astの生成">ASTの生成</a></h2>
+<p>まずは、ASTを作る構造体を以下のように定義します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Parser {
+    tokens: Vec&lt;Token&gt;,
+    pos: usize,
+    has_main: bool,
+}
+impl Parser{
+    pub fn new(tokens: Vec&lt;Token&gt;) -&gt; Self {
+        Self {
+            tokens,
+            pos: 0,
+            has_main: false,
+        }
+    }
+
+    fn peek(&amp;self) -&gt; Option&lt;&amp;Token&gt; {
+        self.tokens.get(self.pos)
+    }
+    fn peek_back(&amp;self) -&gt; Option&lt;&amp;Token&gt; {
+        self.tokens.get(self.pos - 1)
+    }
+    fn _peek_front(&amp;self) -&gt; Option&lt;&amp;Token&gt; {
+        self.tokens.get(self.pos + 1)
+    }
+    fn no_return_next(&amp;mut self) {
+        self.pos += 1;
+    }
+    fn no_return_back(&amp;mut self) {
+        self.pos -= 1;
+    }
+    fn next(&amp;mut self) -&gt; Option&lt;&amp;Token&gt; {
+        let t = self.tokens.get(self.pos);
+        self.pos += 1;
+        t
+    }
+
+    fn expect(&amp;mut self, expected: &amp;Token) {
+        let t = self.next().expect("unexpected EOF");
+        if t != expected {
+            panic!("expected {:?}, got {:?}", expected, t);
+        }
+    }
+    fn check(&amp;self, expected: &amp;Token) -&gt; bool {
+        let t = self.peek().expect("unexpected EOF");
+        t == expected
+    }
+
+    fn consume_comma(&amp;mut self) {
+        match self.peek() {
+            Some(Token::Comma) =&gt; {
+                self.next();
+            }
+            _ =&gt; {}
+        }
+    }
+    fn consume_semicolon(&amp;mut self) {
+        match self.peek() {
+            Some(Token::Semicolon) =&gt; {
+                self.next();
+            }
+            _ =&gt; {}
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>Tokenizerと同様に<code>new</code>で初期化、<code>peek</code>で今いるとこのトークンを読み取る、<code>peek_back</code>で一つ前を読み取る、<code>_peek_front</code>は使ってないが一つ先を読み取るもの、<code>no_return_back</code>と<code>no_return_next</code>は戻り値なしで次に進めたり一つ戻したりする、<code>next</code>で今のを読み取って次に進める、<code>expect</code>は期待するトークンと異なればエラーを出す、<code>check</code>は期待するトークンと一致するかのboolを返す、<code>consume_XXX</code>はXXXを飛ばす。という基本的な動作を定義する。</p>
+<p>次に<code>use</code>で他のファイルもトークン列を作る-&gt;ASTを再帰的に作っていくためのメソッドを追加する。ここではすでにASTを作ったファイルを重複して<code>use</code>で呼びだしてしまわないようにASTを作ったらファイル名を記録していき、その記録にまだ登録されてないことを確認してからASTをつくっている。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn connect_use(&amp;mut self, import_map: &amp;mut Vec&lt;String&gt;, funcs: &amp;mut Vec&lt;TopLevel&gt;) {
+    self.no_return_next();
+    let Token::StringLiteral(path) = self.next().unwrap_or(&amp;Token::EOF) else {
+        return;
+    };
+    let source = fs::read_to_string(path).expect("ファイルを読み込めませんでした");
+    if import_map.contains(&amp;path) {
+        return;
+    }
+    let mut tokenizer = Tokenizer::new(source.as_str());
+    let tokens = tokenizer.tokenize();
+    let mut parser = Parser::new(tokens);
+    let parsed = parser.parse_program(import_map);
+    for module_ast in parsed.functions {
+        funcs.push(module_ast);
+    }
+    import_map.push(path.to_string());
+}
+<span class="boring">}</span></code></pre>
+<p>ではここからパースしてASTを作るところを見てみよう。プログラム全体のパースを駆動するのは以下のメソッドを使う。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_program(&amp;mut self, import_map: &amp;mut Vec&lt;String&gt;) -&gt; Program {
+    let mut funcs = Vec::new();
+
+    while let Some(tok) = self.peek() {
+        match tok {
+            Token::Import =&gt; {
+                self.connect_use(import_map, &amp;mut funcs);
+            }
+            Token::Fn =&gt; {
+                funcs.push(TopLevel::Function(self.parse_function()));
+            }
+            Token::Struct =&gt; {
+                funcs.push(TopLevel::Struct(self.parse_struct()));
+            }
+            Token::Declare =&gt; {
+                funcs.push(TopLevel::Declare(self.parse_declare()));
+            }
+            Token::Semicolon =&gt; {
+                self.no_return_next();
+            }
+            _ =&gt; {
+                // toplevel eval
+                let expr = self.parse_expr();
+                match expr {
+                    Expr::Call { name, args: _ } if name == "main" =&gt; {}
+                    other =&gt; {
+                        funcs.push(TopLevel::Function(Function {
+                            name: "toplevel_child".to_string(),
+                            return_type: Expr::Ident("void".to_string()),
+                            args: vec![],
+                            body: vec![Stmt { expr:other }],
+                        }));
+                    }
+                }
+            }
+        }
+    }
+
+    Program {
+        functions: funcs,
+        has_main: self.has_main,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>また、それぞれの文と式を以下のようなメソッドたちを使ってパースする。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// -------------------------
+// Parse function
+// fn name():i32 { ... }
+// -------------------------
+fn parse_function(&amp;mut self) -&gt; Function {
+    self.expect(&amp;Token::Fn);
+
+    let mut is_main = false;
+    // function name
+    let mut name = match self.next() {
+        Some(Token::Ident(s)) =&gt; s.clone(),
+        other =&gt; panic!("expected function name, got {:?}", other),
+    };
+    name = if name == "main" {
+        is_main = true;
+        self.has_main = true;
+        "main".to_string()
+    } else {
+        name
+    };
+
+    // (type name,type name,...)
+    self.expect(&amp;Token::Lsep(LSeparator::LParen));
+    let mut args = Vec::new();
+    while let Some(token_arg_type) = self.peek() {
+        if *token_arg_type == Token::Rsep(RSeparator::RParen) {
+            break;
+        }
+        self.no_return_next();
+        let arg_type = match self.peek_back() {
+            Some(Token::Ident(s)) =&gt; self.parse_type_apply(s.clone()),
+            other =&gt; panic!("expected arg type, got {:?}", other),
+        };
+        let arg_name = match self.next() {
+            Some(Token::Ident(s)) =&gt; Expr::Ident(s.clone()),
+            other =&gt; panic!("expected arg name, got {:?}", other),
+        };
+        args.push((arg_type, arg_name));
+        self.consume_comma();
+    }
+    self.expect(&amp;Token::Rsep(RSeparator::RParen));
+    let mut return_type = Expr::Ident("void".to_string());
+    if self.check(&amp;Token::Colon) {
+        self.expect(&amp;Token::Colon);
+        if !self.check(&amp;Token::Lsep(LSeparator::LBrace)) {
+            return_type = self.parse_return_type();
+        }
+    }
+    // { statements }
+    self.expect(&amp;Token::Lsep(LSeparator::LBrace));
+    self.consume_semicolon();
+
+    let mut stmts = Vec::new();
+    if is_main {
+        stmts.push(Stmt {
+            expr: Expr::Call {
+                name: "_TOPLEVEL_".to_string(),
+                args: vec![],
+            },
+        })
+    }
+
+    while let Some(tok) = self.peek() {
+        if *tok == Token::Rsep(RSeparator::RBrace) {
+            break;
+        }
+        // optional ;
+        if let Some(Token::Semicolon) = self.peek() {
+            self.next();
+        }
+
+        let expr = self.parse_expr();
+        stmts.push(Stmt { expr });
+
+        // optional ;
+        if let Some(Token::Semicolon) = self.peek() {
+            self.next();
+        }
+    }
+
+    self.expect(&amp;Token::Rsep(RSeparator::RBrace));
+    self.consume_semicolon();
+
+    Function {
+        name,
+        return_type,
+        args: args,
+        body: stmts,
+    }
+}
+// -------------------------
+// Parse struct
+// struct name{ i32 a, ptr b,..., }
+//
+fn parse_struct(&amp;mut self) -&gt; Struct {
+    self.expect(&amp;Token::Struct);
+
+    // struct name
+    let (name, return_type) = match self.next() {
+        Some(Token::Ident(s)) =&gt; (s.clone(), Expr::Ident(s.clone())),
+        other =&gt; panic!("expected struct name, got {:?}", other),
+    };
+    self.expect(&amp;Token::Lsep(LSeparator::LBrace));
+    self.consume_semicolon();
+    let mut args = Vec::new();
+    while let Some(token_arg_type) = self.peek() {
+        if *token_arg_type == Token::Rsep(RSeparator::RBrace) {
+            break;
+        }
+        self.no_return_next();
+        let arg_type = match self.peek_back() {
+            Some(Token::Ident(s)) =&gt; self.parse_type_apply(s.clone()), //Expr::Ident(s.clone()),
+            other =&gt; panic!("expected arg type, got {:?}", other),
+        };
+        let arg_name = match self.next() {
+            Some(Token::Ident(s)) =&gt; Expr::Ident(s.clone()),
+            other =&gt; panic!("expected arg name, got {:?}", other),
+        };
+        args.push((arg_type, arg_name));
+        self.consume_comma();
+    }
+    self.expect(&amp;Token::Rsep(RSeparator::RBrace));
+    Struct {
+        name,
+        _return_type: return_type,
+        args,
+    }
+}
+
+fn parse_declare(&amp;mut self) -&gt; Declare {
+    self.expect(&amp;Token::Declare);
+
+    // function name
+    let mut name = match self.next() {
+        Some(Token::Ident(s)) =&gt; s.clone(),
+        other =&gt; panic!("expected function name, got {:?}", other),
+    };
+    name = if name == "main" {
+        "main".to_string()
+    } else {
+        name
+    };
+
+    // (type name,type name,...)
+    self.expect(&amp;Token::Lsep(LSeparator::LParen));
+    let mut args = Vec::new();
+    let mut is_vararg = false;
+    while let Some(token_arg_type) = self.peek() {
+        if *token_arg_type == Token::Rsep(RSeparator::RParen) {
+            break;
+        }
+        self.no_return_next();
+        let arg_type = match self.peek_back() {
+            Some(Token::Ident(s)) =&gt; self.parse_type_apply(s.clone()),
+            other =&gt; panic!("expected arg type, got {:?}", other),
+        };
+        match arg_type {
+            Expr::Ident(s) if s == "..." =&gt; {
+                is_vararg = true;
+            }
+            _ =&gt; {
+                args.push(arg_type);
+            }
+        }
+        self.consume_comma();
+    }
+    self.expect(&amp;Token::Rsep(RSeparator::RParen));
+    let mut return_type = Expr::Ident("void".to_string());
+    if self.check(&amp;Token::Colon) {
+        self.expect(&amp;Token::Colon);
+        if !self.check(&amp;Token::Lsep(LSeparator::LBrace)) {
+            return_type = self.parse_return_type();
+        }
+    }
+    self.consume_semicolon();
+
+    self.consume_semicolon();
+
+    Declare {
+        name,
+        return_type,
+        args: args,
+        is_vararg,
+    }
+}
+// -------------------------
+// Parse expression (function-call style)
+//
+//   +(1,2)
+//   =(a, 1, i32)
+//   println(a)
+//   warpto(label)
+//   loopif:name(cond){}
+// -------------------------
+fn parse_return_type(&amp;mut self) -&gt; Expr {
+    self.no_return_next();
+    let token = self.peek_back();
+    match token {
+        Some(Token::Ident(name)) =&gt; {
+            let front = self.peek();
+            match front {
+                Some(Token::Colon) =&gt; self.parse_type_apply(name.clone()),
+                Some(_) =&gt; Expr::Ident(name.clone()),
+                _ =&gt; panic!("unexpected EOF in expression"),
+            }
+        }
+        Some(tok) =&gt; panic!(
+            "{}expression begins with unexpected token {:?}",
+            self.pos, tok
+        ),
+        None =&gt; panic!("unexpected EOF in expression"),
+    }
+}
+fn parse_expr(&amp;mut self) -&gt; Expr {
+    self.no_return_next();
+    let token = self.peek_back();
+    match token {
+        Some(Token::IntNumber(n)) =&gt; Expr::IntNumber(*n),
+        Some(Token::FloatNumber(n)) =&gt; Expr::FloatNumber(*n),
+        Some(Token::IntshortNumber(n)) =&gt; Expr::IntSNumber(*n),
+        Some(Token::FloatshortNumber(n)) =&gt; Expr::FloatSNumber(*n),
+        Some(Token::StringLiteral(s)) =&gt; Expr::String(s.clone()),
+        Some(Token::CharLiteral(c)) =&gt; Expr::Char(*c),
+        Some(Token::BoolLiteral(b)) =&gt; Expr::Bool(*b),
+        Some(Token::Return) =&gt; Expr::Return(vec![self.parse_expr()]),
+        Some(Token::Point) =&gt; Expr::Point(vec![self.parse_expr()]),
+        Some(Token::Warpto) =&gt; self.parse_call("warpto".to_string()),
+        Some(Token::WarptoIf) =&gt; self.parse_call("warptoif".to_string()),
+        Some(Token::LoopIf) =&gt; self.parse_loopif(),
+        Some(Token::ArrayCall) =&gt; self.parse_call("Array".to_string()),
+        Some(Token::Ident(name)) =&gt; self.parse_ident_expr(name.clone()),
+        Some(tok) =&gt; panic!(
+            "{}expression begins with unexpected token {:?}",
+            self.pos, tok
+        ),
+        None =&gt; panic!("unexpected EOF in expression"),
+    }
+}
+fn parse_ident_expr(&amp;mut self, name: String) -&gt; Expr {
+    let front = self.peek();
+    match front {
+        Some(Token::Lsep(LSeparator::LParen)) =&gt; self.parse_call(name.clone()),
+        Some(Token::Lsep(LSeparator::LBrace)) =&gt; self.parse_structval(name.clone()),
+        Some(Token::Colon) =&gt; self.parse_type_apply(name.clone()),
+        Some(_) =&gt; Expr::Ident(name.clone()),
+        _ =&gt; panic!("unexpected EOF in expression"),
+    }
+}
+
+// -------------------------
+// Function call parsing
+//
+// name(arg1, arg2, ...)
+// -------------------------
+fn parse_type_apply(&amp;mut self, name: String) -&gt; Expr {
+    match self.next() {
+        Some(Token::Colon) =&gt; {}
+        _ =&gt; {
+            self.no_return_back();
+            return Expr::Ident(name.clone());
+        } //normal types
+    }
+    let mut args = Vec::new();
+    match self.peek() {
+        _ =&gt; {
+            let arg = self.parse_return_type();
+            args.push(arg);
+            self.consume_comma();
+        }
+    }
+    Expr::TypeApply { base: name, args }
+}
+fn parse_structval(&amp;mut self, name: String) -&gt; Expr {
+    match self.next() {
+        Some(Token::Lsep(LSeparator::LBrace)) =&gt; {}
+        other =&gt; panic!(
+            "expected '{{' after function name {:?}, got {:?}",
+            name, other
+        ),
+    }
+    let mut args = Vec::new();
+
+    loop {
+        match self.peek() {
+            Some(Token::Rsep(RSeparator::RBrace)) =&gt; {
+                self.next();
+                break;
+            }
+            _ =&gt; {
+                let arg = self.parse_expr();
+                args.push(arg);
+                self.consume_comma();
+            }
+        }
+    }
+    Expr::StructVal {
+        _name: name,
+        _args: args,
+    }
+}
+fn parse_call(&amp;mut self, mut name: String) -&gt; Expr {
+    match self.next() {
+        Some(Token::Lsep(LSeparator::LParen)) =&gt; {}
+        other =&gt; panic!(
+            "expected '(' after function name {:?}, got {:?}",
+            name, other
+        ),
+    }
+
+    let mut args = Vec::new();
+
+    loop {
+        match self.peek() {
+            Some(Token::Rsep(RSeparator::RParen)) =&gt; {
+                self.next();
+                break;
+            }
+            _ =&gt; {
+                let arg = self.parse_expr();
+                args.push(arg);
+                self.consume_comma();
+            }
+        }
+    }
+    if name == "warpto" || name == "warptoif" {
+        self.consume_semicolon();
+        return Expr::Warp { name, args };
+    } else if name == "Array" {
+        self.consume_semicolon();
+        return Expr::ArrayLiteral(args);
+    }
+    name = if name == "main" {
+        "main".to_string()
+    } else {
+        name
+    };
+    self.consume_semicolon();
+    Expr::Call { name, args }
+}
+fn parse_loopif(&amp;mut self) -&gt; Expr {
+    self.expect(&amp;Token::Colon);
+
+    // loopif name
+    let name = match self.next() {
+        Some(Token::Ident(s)) =&gt; s.clone(),
+        _ =&gt; {
+            self.no_return_back();
+            "loop".to_string()
+        }
+    };
+
+    // (cond)
+    match self.next() {
+        Some(Token::Lsep(LSeparator::LParen)) =&gt; {}
+        other =&gt; panic!("expected '(' after loopif name {:?}, got {:?}", name, other),
+    }
+
+    let mut args = Vec::new();
+
+    loop {
+        match self.peek() {
+            Some(Token::Rsep(RSeparator::RParen)) =&gt; {
+                self.next();
+                break;
+            }
+            _ =&gt; {
+                let arg = self.parse_expr();
+                args.push(arg);
+                self.consume_comma();
+            }
+        }
+    }
+
+    // { statements }
+    self.expect(&amp;Token::Lsep(LSeparator::LBrace));
+    self.consume_semicolon();
+
+    let mut stmts = Vec::new();
+
+    while let Some(tok) = self.peek() {
+        if *tok == Token::Rsep(RSeparator::RBrace) {
+            break;
+        }
+        // optional ;
+        if let Some(Token::Semicolon) = self.peek() {
+            self.next();
+        }
+
+        let expr = self.parse_expr();
+        stmts.push(Stmt { expr });
+
+        // optional ;
+        if let Some(Token::Semicolon) = self.peek() {
+            self.next();
+        }
+    }
+
+    self.expect(&amp;Token::Rsep(RSeparator::RBrace));
+    self.consume_semicolon();
+
+    Expr::Loopif {
+        name,
+        cond: args,
+        body: stmts,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>見ての通りWapLコンパイラのパーサは再帰下降パーサになっている。</p>
+<blockquote>
+<p>再帰下降構文解析（さいきかこうこうぶんかいせき、英語: Recursive Descent Parsing）は、相互再帰型の手続き（あるいは再帰的でない同等の手続き）で構成されるLL法のトップダウン構文解析であり、各プロシージャが文法の各生成規則を実装することが多い。従って、生成されるプログラムの構造はほぼ正確にその文法を反映したものとなる。そのような実装の構文解析器を再帰下降パーサ（Recursive Descent Parser）と呼ぶ。　<a href="https://ja.wikipedia.org/wiki/%E5%86%8D%E5%B8%B0%E4%B8%8B%E9%99%8D%E6%A7%8B%E6%96%87%E8%A7%A3%E6%9E%90">wikiより</a></p>
+</blockquote>
+<h2 id="llvm-irの生成"><a class="header" href="#llvm-irの生成">LLVM IRの生成</a></h2>
+<p>以下のような構造体を作る。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Codegen&lt;'ctx&gt; {
+    pub context: &amp;'ctx Context,
+    pub module: Module&lt;'ctx&gt;,
+    pub builder: Builder&lt;'ctx&gt;,
+    pub struct_types: HashMap&lt;String, StructType&lt;'ctx&gt;&gt;,// structの型を名前をキーにして記録
+    pub struct_fields: HashMap&lt;String, Vec&lt;(String, BasicTypeEnum&lt;'ctx&gt;, u32, Expr)&gt;&gt;, // structのフィールドの名前とインデックスと型をstructの名前をキーにして記録
+    str_counter: usize, // グローバルに確保した文字列の数
+    current_fn: Option&lt;FunctionContext&lt;'ctx&gt;&gt;, // 現在コンパイルしている関数とその関数内のpointで作ったラベルやwarptoなどの元ブロック
+    pub function_types: HashMap&lt;String, Expr&gt;, // 関数の戻り値の型
+    pub current_owners: HashMap&lt;String, bool&gt;, // 現在の関数全体での所有権を持っているポインタが有効かどうかを記録
+    pub scope_owners: ScopeOwner, // 現在のスコープで所有権を持ってるポインタが有効かどうかを記録し,リターン時にこれに基づいてメモリリークを検出
+}
+struct PendingJump&lt;'ctx&gt; {
+    from: BasicBlock&lt;'ctx&gt;,
+}
+#[derive(Clone)]
+struct VariablesPointerAndTypes&lt;'ctx&gt; {
+    ptr: PointerValue&lt;'ctx&gt;,
+    typeexpr: Expr,
+}
+struct FunctionContext&lt;'ctx&gt; {
+    function: FunctionValue&lt;'ctx&gt;,
+    labels: HashMap&lt;String, BasicBlock&lt;'ctx&gt;&gt;, //labels(already exist)
+    unresolved: HashMap&lt;String, Vec&lt;PendingJump&lt;'ctx&gt;&gt;&gt;, //labels(unresolved)
+}
+#[derive(Clone)]
+pub struct ScopeOwner {
+    pos: usize,
+    owners: Vec&lt;HashMap&lt;String, bool&gt;&gt;,
+}
+<span class="boring">}</span></code></pre>
+<p>全体のコンパイルを駆動はメソッドがしています</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn compile_program(&amp;mut self, program: Program) {
+    if program.has_main {
+        self.compile_declare(Declare {
+            name: "_TOPLEVEL_".to_string(),
+            return_type: Expr::Ident("i32".to_string()),
+            args: vec![],
+            is_vararg: false,
+        });
+    }
+
+    for func in program.functions {
+        match func {
+            TopLevel::Function(f) =&gt; {
+                self.compile_function(f);
+            }
+            TopLevel::Struct(s) =&gt; {
+                self.compile_struct(s);
+            }
+            TopLevel::Declare(d) =&gt; {
+                self.compile_declare(d);
+            }
+        }
+    }
+    combine_toplevel(&amp;self.module, &amp;self.builder, program.has_main);
+}
+<span class="boring">}</span></code></pre>
+<p>まず最初に<code>_TOPLEVEL_</code>の宣言をしてその後,関数か構造体か関数の宣言かのコンパイルを順に呼び出していきます。そして最後にトップレベルにある式を<code>_TOPLEVEL_</code>にまとめています。</p>
+<p>この本でのWapLコンパイラの作り方の説明は一旦ここまでにしておきます。ソースコードは<a href="https://github.com/kazanefu/WapL_Compiler">https://github.com/kazanefu/WapL_Compiler</a>で公開されているので興味があれば見てみてください。もし問題点を見つけたり改善をしてくれたら遠慮なく報告していただけるとありがたいです。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="clangllvm--21のインストールubuntu系想定"><a class="header" href="#clangllvm--21のインストールubuntu系想定">Clang/LLVM -21のインストール(Ubuntu系想定)</a></h1>
+<p>以下のコマンドを順に打って最後に<code>clang-21 --version</code>でバージョンが出力されたら成功です。</p>
+<pre><code class="language-bash">$ sudo apt update
+</code></pre>
+<pre><code class="language-bash">$ sudo apt install -y wget gnupg
+</code></pre>
+<pre><code class="language-bash">$ wget https://apt.llvm.org/llvm.sh
+</code></pre>
+<pre><code class="language-bash">$ chmod +x llvm.sh
+</code></pre>
+<pre><code class="language-bash">$ sudo ./llvm.sh 21
+</code></pre>
+<pre><code class="language-bash">$ clang-21 --version
+</code></pre>
 
                     </main>
 
