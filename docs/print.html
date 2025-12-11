@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e254d48f.js";
+            window.path_to_searchindex_js = "searchindex-f835dca1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b88c102b.js"></script>
+        <script src="toc-1969de89.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -403,7 +403,7 @@ Hello, WapL!
 5
 0
 </code></pre>
-<p>このように変数の宣言は<code>#=(変数名,初期値,型)</code>の形式で行います。また、初期値なしで宣言する場合は<code>_</code>を初期値の入れます。また、代入は<code>=(変数,値)</code>という形式で記述します。宣言に伴う初期値、代入する値ともに一部例外を除いて型が変数の型と一致する必要があります。</p>
+<p>このように変数の宣言は<code>#=(変数名,初期値,型)</code>の形式で行います。また、初期値なしで宣言する場合は<code>_</code>を初期値の入れます。また、代入は<code>=(変数,値)</code>という形式で記述します。</p>
 <pre><code class="language-wapl">fn main():i32{
     #=(x,_,i64);
     println(format("%d",x));// 代入されてないので0が出力される.
@@ -411,14 +411,300 @@ Hello, WapL!
 }
 </code></pre>
 <p>このように値を代入せずに読み取るとエラーは出ませんが思わぬ値が渡される可能性があるので必ず読み取る前に値を代入するようにします。</p>
+<p>宣言に伴う初期値は一部例外を除いて型が変数の型と一致する必要があります。以下のようなプログラムは<code>x</code>を<code>i64</code>の型で宣言しているにも関わらず、初期値が<code>'5'</code>と<code>char</code>型になっているためコンパイル時にエラーが出ます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x,'5',i64);
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">Error: x Type miss match : expected Ident("i64") found Ident("char")
+</code></pre>
+<p><strong>シャドーイング</strong></p>
+<p>内側のスコープで外側にあるのと同じ名前で新たに変数を宣言すると、前の変数は新しい変数に覆い隠され、そのスコープより内側では新しい変数の値が現れます。また、そのスコープを抜ければ再び前の変数の値が現れるようになります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x,5,i64);
+    #=(x,+(x,5),i64);
+
+    loopif:inner(true){
+        #=(x,*(x,2),i64);
+        println(format("The value of x in the inner scope is: %d",x));
+        warpto(break-inner);
+    }
+    
+    println(format("The value of x is: %d",x));
+    
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">The value of x in the inner scope is: 20
+The value of x is: 10
+</code></pre>
+<p>このコードではまず<code>x</code>を<code>5</code>という値に束縛します。それから<code>#=(x,...</code>をもう一度行い、<code>x</code>をもとの値に<code>5</code>を足した値、つまり<code>10</code>で覆い隠します。次にスコープの中に入って<code>#=</code>で3回目の宣言でさらに元の値の2倍の<code>20</code>で覆い隠します。ここで、<code>x</code>を読み取るともちろん<code>20</code>です。スコープを抜けると3回目の宣言でのシャドーイングが終了するため<code>x</code>を読み取ると2回目の宣言による<code>10</code>が現れます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="基本的な型"><a class="header" href="#基本的な型">基本的な型</a></h1>
+<p>コンパイラ版WapLは<strong>静的型付き</strong>言語であり、コンパイル時にすべての変数の型が判明している必要があります。基本的に型は変数や関数の宣言時に明示的に書く必要があり、それ以降は型推論が効きます。</p>
+<p><strong>スカラー型</strong></p>
+<p>スカラー型は、単独の値を表します。WapLにおいては主に4つのスカラー型があります: 整数、浮動小数点数、論理値、文字、です。</p>
+<p><strong>整数型</strong></p>
+<p>WapLでは2種類の整数型があります:<code>i32</code>と<code>i64</code>です。それぞれ32-bit、64-bitの符号ありの整数です。符号ありなので例えば<code>i32</code>だと$-(2^{31})$から$2^{31}-1$まで表現できます。</p>
+<p>整数リテラルは小数点を含まないただの整数は<code>i64</code>になり、末尾に<code>s</code>をつけると<code>i32</code>になります。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>型</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td>i64</td><td>-123</td></tr>
+<tr><td>i32</td><td>42s</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>浮動小数点型</strong></p>
+<p>整数型と同様に浮動小数点型にも32-bitと64-bitのものがあります:<code>f32</code>と<code>f64</code>です。</p>
+<p>浮動小数点リテラルは小数点を持つ数値です。また、浮動小数点リテラルも整数リテラル同様に32-bitなら<code>s</code>を末尾につけ、つけなければ<code>f64</code>として扱われます。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>型</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td>f64</td><td>-123.45</td></tr>
+<tr><td>f32</td><td>42.0s</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>数値演算</strong></p>
+<p>WapLにも全数値型に期待されうる標準的な数学演算が用意されています: 足し算、引き算、掛け算、割り算、余りです。WapLで特徴的なのは異なる型で数値演算を行った際には左側の型に合わせて自動でキャストされるということです。</p>
+<pre><code class="language-wapl">fn main():i32{
+    // 足し算
+    #=(sum, +(5,20.2), i64);// 25
+
+    // 引き算
+    #=(difference, -(10.5,3), f64);// 7.5
+
+    // 掛け算
+    #=(product, *(42,5), i64);// 210
+
+    // 割り算
+    #=(quotient, /(49.54,10.0), f64);// 4.954
+    #=(floored, /(2,3), i64);// 0
+
+    // 余り
+    #=(remainder, %(43,5), i64);// 3
+
+    return 0s;
+}
+</code></pre>
+<p>これらの文の各式は、数学演算子を使用しており、一つの値に評価され、そして、変数に束縛されます。</p>
+<p><strong>論理値型</strong></p>
+<p>WapLの論理値型:<code>bool</code>は<code>true</code>と<code>false</code>の二つの値をとることができます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(t, true, bool);
+    #=(f, false, bool);
+    return 0s;
+}
+</code></pre>
+<p><strong>文字型</strong></p>
+<p>WapLで文字は<code>char</code>型で扱います。<code>char</code>は8-bitであるためASCIIまでしか扱えません。また、文字リテラルはシングルクォーテーションで囲みます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(c1, 'A', char);
+    #=(c2, '\x41', char);
+    #=(c3, '\u{41}',char);
+    println(format("%c",c1));
+    println(format("%c",c2));
+    println(format("%c",c3));
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">A
+A
+A
+</code></pre>
+<p>これらはすべて<code>A</code>を表します。</p>
+<p><strong>ポインタ型</strong></p>
+<p>WapLでは配列や文字列などもポインタ型であらわします。ポインタ型には4種類あり、<code>ptr:T</code> <code>*:T</code> <code>&amp;:T</code> <code>&amp;mut:T</code>があり、<code>T</code>のところにポインタが指す型が入ります。ポインタのポインタだったりする場合は<code>ptr:ptr:T</code>のようになります。それぞれのポインタ型の詳しい説明は<a href="#簡易的な所有権借用">第3章 簡易的な所有権/借用</a>でします。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(str, "hello", ptr:char);
+    println(format("%s",str));
+
+    #=(arr, alloc(i64,5), ptr:i64);
+    =(arr, Array(3,1,4,1,5));
+    #=(i,0,i64);
+    loopif:(&lt;(i,5)){
+        println(format("%d", [](arr,i)));
+        =(i,+(i,1));
+    }
+
+    #=(x, 10, i64);
+    #=(p, &amp;_(x), ptr:i64);
+    println(format("%d", *_(p)));
+
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">hello
+3
+1
+4
+1
+5
+10
+</code></pre>
+<p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>alloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="関数"><a class="header" href="#関数">関数</a></h1>
+<p>WapLでは1.2で述べたように基本的に<code>main</code>関数がエントリーポイントになります。しかし、<code>main</code>以外の関数をエントリーポイントのようにすることも可能です。</p>
+<pre><code class="language-wapl">fn start(){
+    println("Hello, Start!");
+}
+start();
+</code></pre>
+<p>これは内部的には一番最後の<code>start()</code>の呼び出しが<code>_TOPLEVEL_</code>という見えない関数に入れられて、<code>_TOPLEVEL_</code>が最初に呼ばれて関数の外に書いてある処理を順に行うので<code>start</code>関数が呼ばれています。</p>
+<p>WapLでは関数は必ず関数の呼び出しより上で関数の定義がされている必要があります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    another();
+    return 0s;
+}
+fn another():void{
+    println("Hello, from another function!");
+}
+</code></pre>
+<pre><code class="language-bash">Function another not found
+</code></pre>
+<p>のようにエラーがでます。これを正しく動くようにするためには以下のような順で書く必要があります。</p>
+<pre><code class="language-wapl">fn another():void{
+    println("Hello, from another function!");
+}
+fn main():i32{
+    another();
+    return 0s;
+}
+</code></pre>
+<p>または宣言だけを先に置くことでも解決できます:</p>
+<pre><code class="language-wapl">declare another():void;
+fn main():i32{
+    another();
+    return 0s;
+}
+fn another():void{
+    println("Hello, from another function!");
+}
+</code></pre>
+<p>このように関数の定義は<code>fn</code>、宣言は<code>declare</code>で行います。</p>
+<p><strong>関数の引数</strong></p>
+<p>引数は関数のシグネチャの一部になる特別な変数のことで、宣言時には実引数は作らなくてよく、<code>()</code>の中に型のみを<code>,</code>区切りで列挙し、関数の宣言のときは型と変数名を書きます。</p>
+<pre><code class="language-wapl">declare another_function(i64,i64);
+fn main():i32{
+    another_function(5,3)
+    return 0s;
+}
+fn another_function(i64 x,i64 y){
+    println(format("%d,%d",x,y));
+}
+</code></pre>
+<p><strong>戻り値のある関数</strong></p>
+<p>引数を書いた括弧の後ろに戻り値がある場合は<code>:</code>で区切ってその後に戻り値の型を書きます。また<code>return</code>で戻り値を返します。:</p>
+<pre><code class="language-wapl">fn five():i64{
+    return 5;
+}
+fn main():i32{
+    println(format("five() return %d",five()));
+    return 0s;
+}
+</code></pre>
+<p>ここでは<code>five</code>関数の戻り値の型は<code>i64</code>で<code>return</code>で<code>5</code>を返しています。<code>declare</code>で宣言をするときも同様です。</p>
+<pre><code class="language-wapl">declare five():i64;
+fn main():i32{
+    println(format("five() return %d",five()));
+    return 0s;
+}
+fn five():i64{
+    return 5;
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="コメント"><a class="header" href="#コメント">コメント</a></h1>
+<p>WapLでコメントアウトは<code>//</code>でそれ以降のその行をコメントにするものしかありません。コメントはコンパイラは無視しますが、ソースコードを読む人間にとっては有益なものと思えるでしょう。</p>
+<pre><code class="language-wapl">// ここではコメントについて説明するよ!
+// コメントは各行ごとに//を入れる必要があるよ
+fn main():i32{
+    // 下のようにコードの書かれた行の末尾をコメントにすることもできるよ
+    #=(ans, 42, i64);// すべての答え
+    return 0s
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="制御フロー"><a class="header" href="#制御フロー">制御フロー</a></h1>
+<p><strong>point/warpto文</strong></p>
+<p>WapLで最も基本となる制御フローは<code>point/warpto</code>文です。これは多くの言語でのgoto文に近い概念で非常に自由度の高い処理が書けます。<code>point</code>でラベルをつけてブロックを作り、<code>warpto</code>でそこまでジャンプします。<code>warpto</code>は</p>
+<pre><code class="language-wapl">fn main():i32{
+    warpto(skip);
+    point skipped;
+        println("この行は飛ばされるよ");
+        warpto(skip);
+    point skip;
+    
+    println("skipに飛んだよ");
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">skipに飛んだよ
+</code></pre>
+<p>これでは<code>skipped</code>と<code>skip</code>というラベルでブロックを作り、<code>warpto(skip)</code>で<code>skip</code>に飛びます。すべてのブロックが<code>return</code>か<code>warpto</code>/<code>warptoif</code>のどれかで終わる必要があります。</p>
+<p><strong>warptoif文</strong></p>
+<p><code>warptoif</code>は<code>warpto</code>に条件を付けて真のときと偽のときで飛ぶ先を選択するもので<code>warptoif(条件, 真のとき, 偽のとき)</code>となります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(cond, true, bool);
+    warptoif(cond, then, else);
+    point then;
+        println("then");
+        warpto(end);
+    point else;
+        println("else");
+        warpto(end);
+    point end;
+    return 0s;
+}
+</code></pre>
+<p>このようにして条件分岐を作ることもできますし、後述する<code>loopif</code>も内部では<code>point</code>/<code>warpto</code>/<code>warptoif</code>と同じようなことがされています。</p>
+<p><strong>loopif文</strong></p>
+<p><code>loopif</code>は他の多くの言語で存在する<code>while</code>のようなもので、名前を付けたり<code>warpto</code>/<code>warptoif</code>にも対応しています。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(i,0,i64);
+    loopif:(&lt;(i,10)){
+        println(format("%d",i))
+        =(i,+(i,1));
+    }
+
+    =(i,0)
+    loopif:LOOP1(&lt;(i,10)){
+        println(format("LOOP1:%d",i))
+        =(i,+(i,1));
+        warptoif(&lt;(i,5),continue-LOOP1,break-LOOP1);
+    }
+
+    return 0s
+}
+</code></pre>
+<pre><code class="language-bash">0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+LOOP1:0
+LOOP1:1
+LOOP1:2
+LOOP1:3
+LOOP1:4
+</code></pre>
+<p>このように<code>loopif</code>は名前ありでも名前なしでも作ることができ、ループを抜けたいときは<code>break-名前</code>に飛ぶことで抜けることができ、以下の処理をせずに条件の評価に戻りたいときは<code>continue-名前</code>に飛ぶことでできる。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="簡易的な所有権借用"><a class="header" href="#簡易的な所有権借用">簡易的な所有権/借用</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="付録"><a class="header" href="#付録">付録</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1585,7 +1871,1541 @@ pub struct ScopeOwner {
 }
 <span class="boring">}</span></code></pre>
 <p>まず最初に<code>_TOPLEVEL_</code>の宣言をしてその後,関数か構造体か関数の宣言かのコンパイルを順に呼び出していきます。そして最後にトップレベルにある式を<code>_TOPLEVEL_</code>にまとめています。</p>
-<p>この本でのWapLコンパイラの作り方の説明は一旦ここまでにしておきます。ソースコードは<a href="https://github.com/kazanefu/WapL_Compiler">https://github.com/kazanefu/WapL_Compiler</a>で公開されているので興味があれば見てみてください。もし問題点を見つけたり改善をしてくれたら遠慮なく報告していただけるとありがたいです。</p>
+<p>では次は関数のIRを作るところを見てみましょう</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn compile_function(&amp;mut self, func: Function) {
+    if self.function_types.contains_key(&amp;func.name) {
+        panic!("function '{}' already defined", func.name);
+    }
+    // --- type of return value ---
+    let return_type_is_void = matches!(func.return_type, Expr::Ident(ref s) if s == "void");
+
+    let return_type_enum = if return_type_is_void {
+        None
+    } else {
+        Some(self.llvm_type_from_expr(&amp;func.return_type))
+    };
+
+    // --- type of arguments ---
+    let arg_types: Vec&lt;BasicTypeEnum&gt; = func
+        .args
+        .iter()
+        .map(|(ty, _)| self.llvm_type_from_expr(ty))
+        .collect();
+
+    // ---convert to Metadata type ---
+    let arg_types_meta: Vec&lt;BasicMetadataTypeEnum&gt; =
+        arg_types.iter().map(|t| (*t).into()).collect();
+
+    // --- LLVM gen function ---
+    let fn_type = if return_type_is_void {
+        self.context.void_type().fn_type(&amp;arg_types_meta, false)
+    } else {
+        return_type_enum.unwrap().fn_type(&amp;arg_types_meta, false)
+    };
+
+    // --- add function ---
+    let llvm_func = self.module.add_function(&amp;func.name, fn_type, None);
+    self.function_types
+        .insert(func.name.clone(), func.return_type);
+    let entry = self.context.append_basic_block(llvm_func, "entry");
+    self.builder.position_at_end(entry);
+
+    // --- alloca &amp; initialize args ---
+    self.current_owners = HashMap::new();
+    self.scope_owners = ScopeOwner::new();
+    let mut variables: HashMap&lt;String, VariablesPointerAndTypes&lt;'ctx&gt;&gt; = HashMap::new();
+    for (i, (ty, arg_expr)) in func.args.iter().enumerate() {
+        let param = llvm_func.get_nth_param(i as u32).unwrap();
+
+        // get arg names (Expr::Ident(name))
+        let arg_name = match arg_expr {
+            Expr::Ident(name) =&gt; name.as_str(),
+            _ =&gt; panic!("Function argument name must be identifier"),
+        };
+        param.set_name(arg_name);
+
+        // alloca anyway
+        let alloca = self
+            .builder
+            .build_alloca(param.get_type(), arg_name)
+            .expect("alloca failed");
+        self.builder.build_store(alloca, param).unwrap();
+        variables.insert(
+            arg_name.to_string(),
+            VariablesPointerAndTypes {
+                ptr: alloca,
+                typeexpr: ty.clone(),
+            },
+        );
+        match ty {
+            Expr::TypeApply { base, args: _args } if base == "*" =&gt; {
+                self.current_owners.insert(arg_name.to_string(), true);
+                self.scope_owners.set_true(arg_name.to_string());
+            }
+            _ =&gt; {}
+        }
+    }
+    //alloca return value
+    let _ret_alloca = if !return_type_is_void {
+        Some(
+            self.builder
+                .build_alloca(return_type_enum.unwrap(), "ret_val"),
+        )
+    } else {
+        None
+    };
+
+    self.current_fn = Some(FunctionContext {
+        function: llvm_func,
+        labels: HashMap::new(),
+        unresolved: HashMap::new(),
+    });
+
+    // --- function body ---
+    for stmt in func.body {
+        let _value = self.compile_stmt(&amp;stmt, &amp;mut variables);
+    }
+
+    // --- temporary return ---
+    if return_type_is_void {
+        self.builder.build_return(None).unwrap();
+    } else {
+        // // 仮に i32 を戻り値として返す
+        // let zero = self.context.i32_type().const_int(0, false);
+        // self.builder.build_return(Some(&amp;zero)).unwrap();
+    }
+    //Exit from the current function
+    self.current_fn = None;
+}
+<span class="boring">}</span></code></pre>
+<p>まず、関数がすでに定義されていないかの確認をします。次にASTの戻り値の型をLLVM IRの型に変換します。また、同様にして引数の型もIRの型にします。そしたら、関数の宣言をして記録します。次にスコープと所有権を持つポインタを管理するものを作って、引数をそのスコープ内の変数として読み取れるようにしていきます。その後、関数の本体のコンパイルを文ごとに連続して呼びます。</p>
+<p>ではそれぞれの文をコンパイルするメソッドを見ていきましょう。ここでは主に制御フローと戻り値のIRを生成します。まず式が来た場合は式のIRを作るためのメソッドを呼んで任せます。次に、<code>point ラベル名</code> <code>warpto(行先)</code> <code>warptoif(条件,真のときの行先,偽のときの行先)</code> <code>return 戻り値</code> <code>loopif:ループ名(条件){...}</code>のそれぞれを分岐してIRにしていっています。<code>Return</code>のところに注目するとここで所有権を持っているポインタが所有しているメモリが解放されているかを確認してメモリリークを防いでいます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn compile_stmt(
+    &amp;mut self,
+    stmt: &amp;Stmt,
+    variables: &amp;mut HashMap&lt;String, VariablesPointerAndTypes&lt;'ctx&gt;&gt;,
+) {
+    match &amp;stmt.expr {
+        Expr::IntNumber(_) | Expr::FloatNumber(_) | Expr::Call { .. } | Expr::Ident(_) =&gt; {
+            // compile_expr
+            self.compile_expr(&amp;stmt.expr, variables);
+        }
+        Expr::Point(labels) =&gt; {
+            let label_name = match &amp;labels[0] {
+                Expr::Ident(s) =&gt; Some(s.as_str()),
+                _ =&gt; None,
+            };
+            self.gen_point(label_name.expect("point: missing label literal"));
+        }
+        Expr::Warp { name, args } =&gt; match name.as_str() {
+            "warpto" =&gt; {
+                //get label name (point NAME &lt;- this)
+                let label_name = match &amp;args[0] {
+                    Expr::Ident(s) =&gt; Some(s.as_str()),
+                    _ =&gt; None,
+                };
+                self.gen_warpto(label_name.expect("point: missing label literal"));
+            }
+            "warptoif" =&gt; {
+                // compile condition value
+                let cond: BasicValueEnum = self.compile_expr(&amp;args[0], variables).unwrap().0;
+                let cond_i1 = match cond {
+                    BasicValueEnum::IntValue(v) if v.get_type().get_bit_width() == 1 =&gt; v,
+                    _ =&gt; panic!("warptoif condition requires boolean (i1) values"),
+                };
+                //get label name (point NAME &lt;- this)
+                // label_name1 = destination if condition true
+                // label_name2 = destination if condition false (optional)
+                let label_name1 = match &amp;args[1] {
+                    Expr::Ident(s) =&gt; Some(s.as_str()),
+                    _ =&gt; None,
+                };
+                let label_name2 = match &amp;args.get(2) {
+                    Some(Expr::Ident(s)) =&gt; Some(s.as_str()),
+                    _ =&gt; None,
+                };
+                self.gen_warptoif(
+                    cond_i1,
+                    label_name1.expect("point: missing label literal"),
+                    label_name2,
+                );
+            }
+            _ =&gt; {
+                panic!("warp:not (warpto or warptoif)");
+            }
+        },
+        Expr::Return(vals) =&gt; {
+            if vals.len() != 1 {
+                panic!("Return must have exactly one value");
+            }
+            //compile return value
+            let ret_val = self
+                .compile_expr(vals.into_iter().next().unwrap(), variables)
+                .unwrap()
+                .0; // unwrap is safe because we already checked vals.len() == 1
+            self.builder.build_return(Some(&amp;ret_val)).unwrap();
+            // check memory leak
+            for i in self.scope_owners.show_current() {
+                // if there are Not released memory , print error message
+                if let Some(b) = self.current_owners.get(&amp;i.0)
+                    &amp;&amp; *b
+                {
+                    println!(
+                        "{}:you need to free or drop pointer {}!",
+                        "Error".red().bold(),
+                        i.0
+                    );
+                }
+            }
+            self.scope_owners.reset_current();
+        }
+        Expr::Loopif { name, cond, body } =&gt; {
+            if cond.len() != 1 {
+                panic!("Loopif:{} conditions must have exactly one value", name);
+            }
+
+            self.compile_loopif(name, &amp;cond[0], body, variables);
+        }
+        _ =&gt; unimplemented!(),
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>次は式をIRに落とし込むところを見てみましょう。以下のメソッドではリテラル、変数、コンパイラ組み込みの関数の呼び出し、ユーザー定義の関数の呼び出しをIRにしています。すべてのコンパイラ組み込みの関数について書いてあったりするため非常に長くなっていますので全体の流れだけつかめればよいでしょう。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn compile_expr(
+    &amp;mut self,
+    expr: &amp;Expr,
+    variables: &amp;mut HashMap&lt;String, VariablesPointerAndTypes&lt;'ctx&gt;&gt;,
+) -&gt; Option&lt;(
+    BasicValueEnum&lt;'ctx&gt;,
+    Expr,
+    Option&lt;VariablesPointerAndTypes&lt;'ctx&gt;&gt;,
+)&gt; {
+    match expr {
+        // Literals
+        Expr::IntNumber(n) =&gt; Some((
+            self.context.i64_type().const_int(*n as u64, false).into(),
+            Expr::Ident("i64".to_string()),
+            None,
+        )),
+        Expr::FloatNumber(n) =&gt; Some((
+            self.context.f64_type().const_float(*n).into(),
+            Expr::Ident("f64".to_string()),
+            None,
+        )),
+        Expr::IntSNumber(n) =&gt; Some((
+            self.context.i32_type().const_int(*n as u64, false).into(),
+            Expr::Ident("i32".to_string()),
+            None,
+        )),
+        Expr::FloatSNumber(n) =&gt; Some((
+            self.context.f32_type().const_float((*n).into()).into(),
+            Expr::Ident("f32".to_string()),
+            None,
+        )),
+        Expr::Bool(b) =&gt; Some((
+            self.context.bool_type().const_int(*b as u64, false).into(),
+            Expr::Ident("bool".to_string()),
+            None,
+        )),
+        Expr::Char(c) =&gt; Some((
+            self.context.i8_type().const_int(*c as u64, false).into(),
+            Expr::Ident("char".to_string()),
+            None,
+        )),
+        Expr::String(s) =&gt; {
+            //create unique named global string
+            let global_str = self
+                .builder
+                .build_global_string_ptr(s, &amp;format!("str_{}", self.str_counter))
+                .unwrap();
+            self.str_counter += 1;
+            Some((
+                global_str.as_pointer_value().into(),
+                Expr::TypeApply {
+                    base: "ptr".to_string(),
+                    args: vec![Expr::Ident("char".to_string())],
+                },
+                None,
+            ))
+        }
+
+        // Variables
+        Expr::Ident(name) =&gt; {
+            //get pointer and variable type
+            let alloca = variables
+                .get(name)
+                .expect(&amp;format!("Undefined variable {}", name)); // safe because variable must exist
+            match &amp;alloca.typeexpr {
+                //borrow check
+                Expr::TypeApply { base, args } if base == "*" =&gt; {
+                    // check ownership: if pointer has been moved, reading it is prohibited
+                    if !self.current_owners.get(name).expect(&amp;format!(
+                        "{} type is *:{:?} but failed to find in ownerships ",
+                        name, args[0]
+                    )) {
+                        println!(
+                            "{}:\"{}\" already moved. it is prohibited to read moved pointer",
+                            "Error".red().bold(),
+                            name
+                        )
+                    }
+                }
+                _ =&gt; {}
+            }
+            Some((
+                self.builder
+                    .build_load(self.llvm_type_from_expr(&amp;alloca.typeexpr), alloca.ptr, name)
+                    .unwrap()
+                    .into(),
+                alloca.typeexpr.clone(),
+                Some(alloca.clone()),
+            ))
+        }
+
+        Expr::Call { name, args } =&gt; match name.as_str() {
+            //return reference
+            "ptr" | "&amp;_" =&gt; {
+                //if arg is variable , name is variable name
+                //else get pointer by from compile_expr
+                let name = match &amp;args[0] {
+                    Expr::Ident(s) =&gt; s,
+                    _ =&gt; {
+                        //unwrap because "ptr" or "&amp;_" require an expression with a pointer
+                        let (_exp, ty, p) = self.compile_expr(&amp;args[0], variables).unwrap();
+                        let ptr = p
+                            .expect(&amp;format!(
+                                "ptr() and &amp;_ require an expression with a pointer"
+                            ))
+                            .ptr
+                            .as_basic_value_enum();
+                        return Some((
+                            ptr.clone(),
+                            Expr::TypeApply {
+                                base: "ptr".to_string(),
+                                args: vec![ty],
+                            },
+                            None,
+                        ));
+                    }
+                };
+                let alloca = get_var_alloca(variables, name);
+                Some((
+                    alloca.as_basic_value_enum(),
+                    Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![
+                            variables
+                                .get(name)
+                                .expect(&amp;format!("Undefined variable {}", name))
+                                .typeexpr
+                                .clone(),
+                        ],
+                    },
+                    None,
+                ))
+            }
+            //dereference
+            //val(pointer , option(what type to load it as))
+            "val" | "*_" =&gt; {
+                //p = (pointer value,type,...)
+                // safe: "val" / "*_" always expects an expression that evaluates to a pointer
+                let p = self.compile_expr(&amp;args[0], variables).unwrap();
+                let ptr = p.0.into_pointer_value();
+                let mut load_type = &amp;expr_deref(&amp;p.1); // what type the pointer point
+                let ty = args.get(1);
+                // Determine the type to load: default is pointer's base type, override if second argument is provided
+                load_type = match ty {
+                    Some(t) =&gt; t,
+                    None =&gt; load_type,
+                };
+                let loaded = self
+                    .builder
+                    .build_load(self.llvm_type_from_expr(load_type), ptr, "deref")
+                    .unwrap();
+                Some((loaded.as_basic_value_enum(), load_type.clone(), None))
+            }
+            //declaring and initializing variables
+            "let" | "#=" =&gt; {
+                // args: [var_name, initial_value, type_name]
+                let var_name = match &amp;args[0] {
+                    Expr::Ident(s) =&gt; s,
+                    _ =&gt; panic!("let: first arg must be variable name"),
+                };
+
+                let llvm_type: BasicTypeEnum = self.llvm_type_from_expr(&amp;args[2]);
+
+                // If there is an initial value
+                let init_val_exist = match &amp;args[1] {
+                    Expr::Ident(s) =&gt; {
+                        if *s == "_".to_string() {
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    _ =&gt; true,
+                };
+                // Check if an initial value is provided; "_" means no initial value
+                // If no initial value, zero-initialize (works for numeric types and structs)
+                let init_val = if init_val_exist {
+                    self.compile_expr(&amp;args[1], variables)
+                } else {
+                    // For structs, initialize with zeroed
+                    Some((
+                        llvm_type.const_zero(),
+                        Expr::Ident("void".to_string()),
+                        None,
+                    ))
+                };
+
+                // alloca
+                let alloca = self
+                    .builder
+                    .build_alloca(llvm_type, var_name)
+                    .expect("fail alloca");
+                self.builder
+                    .build_store(alloca, init_val.clone().unwrap().0) // safe unwrap: the existence of init_val is already checked
+                    .unwrap();
+                variables.insert(
+                    var_name.clone(),
+                    VariablesPointerAndTypes {
+                        ptr: alloca,
+                        typeexpr: args[2].clone(),
+                    },
+                );
+                // if its type is pointer with Ownership, recoad ownership scope and the entire function ownership
+                match &amp;args[2] {
+                    Expr::TypeApply { base, args } if base == "*" =&gt; {
+                        self.current_owners.insert(var_name.clone(), true);
+                        self.scope_owners.set_true(var_name.clone());
+                        if !init_val_exist {
+                            println!(
+                                "{}: {var_name} is Owner (*:{:?}). it must have value",
+                                "Error".red().bold(),
+                                args
+                            )
+                        }
+                    }
+                    Expr::TypeApply { base:_, args:_ } =&gt;{}
+                    _ =&gt; if init_val_exist&amp;&amp;!type_match(&amp;args[2], &amp;init_val.clone().unwrap().1) {
+                        println!("{}: {var_name} Type miss match : expected {:?} found {:?}","Error".red().bold(),&amp;args[2],&amp;init_val.clone().unwrap().1)
+                    },
+                }
+
+                Some((init_val.unwrap().0, Expr::Ident("void".to_string()), None))
+            }
+            // Assignment
+            "=" =&gt; match &amp;args[1] {
+                // Array assign is special
+                Expr::ArrayLiteral(elems) =&gt; Some((
+                    self.codegen_array_assign(&amp;args[0], elems, variables)
+                        .unwrap(), // safe unwrap: codegen_array_assign returns Some for valid array literals
+                    Expr::Ident("void".to_string()),
+                    None, // Array assignment does not return a value because the pointer already exists
+                )),
+                _ =&gt; {
+                    let value = self.compile_expr(&amp;args[1], variables).unwrap();
+                    let alloca = self.get_pointer_expr(&amp;args[0], variables);
+                    // reassign *_(immutable borrow) or val(immutable borrow) is prohibited
+                    // Check for immutable borrow: cannot reassign *_(immutable) or val(immutable)
+                    if let Expr::Call { name: _name, args } = &amp;args[0]
+                        &amp;&amp; let Some(Expr::Ident(s)) = args.get(0)
+                        &amp;&amp; let Some(val) = variables.get(s)
+                        &amp;&amp; let Expr::TypeApply { base, args: _args } = &amp;val.typeexpr
+                        &amp;&amp; base == "&amp;"
+                    {
+                        println!(
+                            "{} :{} :{:?} is immutable borrow! if you want to reassign, use &amp;mut:T",
+                            "Error".red().bold(),
+                            s,
+                            &amp;val.typeexpr
+                        );
+                    }
+                    self.builder.build_store(alloca, value.0).unwrap();
+                    Some(value)
+                }
+            },
+            // add,sub,mul,div,rem
+            "+" | "-" | "*" | "/" | "%" =&gt; {
+                let lhs_val = self.compile_expr(&amp;args[0], variables)?;
+                let rhs_val = self.compile_expr(&amp;args[1], variables)?;
+
+                // ===== Type matching: Match the right side to the type of the left side =====
+                let rhs_casted = match (lhs_val.0, rhs_val.0) {
+                    // ------- When both the left and right are integers -------
+                    (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) =&gt; {
+                        let lhs_bits = l.get_type().get_bit_width();
+                        let rhs_bits = r.get_type().get_bit_width();
+
+                        let r2 = if lhs_bits &gt; rhs_bits {
+                            // i32 → i64
+                            self.builder
+                                .build_int_s_extend(r, l.get_type(), "int_ext")
+                                .unwrap()
+                        } else if lhs_bits &lt; rhs_bits {
+                            // i64 → i32
+                            self.builder
+                                .build_int_cast(r, l.get_type(), "int_trunc")
+                                .unwrap()
+                        } else {
+                            r
+                        };
+                        BasicValueEnum::IntValue(r2)
+                    }
+
+                    // ------- When both the left and right are floating point -------
+                    (BasicValueEnum::FloatValue(l), BasicValueEnum::FloatValue(r)) =&gt; {
+                        let lhs_ty = l.get_type();
+                        let rhs_ty = r.get_type();
+
+                        let r2 = if lhs_ty != rhs_ty {
+                            let lhs_bits = float_bit_width(lhs_ty);
+                            let rhs_bits = float_bit_width(rhs_ty);
+
+                            if lhs_bits &gt; rhs_bits {
+                                // f32 → f64
+                                self.builder.build_float_ext(r, lhs_ty, "fext").unwrap()
+                            } else {
+                                // f64 → f32
+                                self.builder.build_float_trunc(r, lhs_ty, "ftrunc").unwrap()
+                            }
+                        } else {
+                            r
+                        };
+
+                        BasicValueEnum::FloatValue(r2)
+                    }
+
+                    // ------- int + float → float (left is float)-------
+                    (BasicValueEnum::FloatValue(l), BasicValueEnum::IntValue(r)) =&gt; {
+                        let r2 = self
+                            .builder
+                            .build_signed_int_to_float(r, l.get_type(), "i2f")
+                            .unwrap();
+                        BasicValueEnum::FloatValue(r2)
+                    }
+
+                    // ------- int + float → int (left is int)-------
+                    (BasicValueEnum::IntValue(l), BasicValueEnum::FloatValue(r)) =&gt; {
+                        let r2 = self
+                            .builder
+                            .build_float_to_signed_int(r, l.get_type(), "f2i")
+                            .unwrap();
+                        BasicValueEnum::IntValue(r2)
+                    }
+
+                    _ =&gt; panic!("Unsupported combination in binary operation"),
+                };
+
+                // ===== Calculation from here =====
+                // Perform the arithmetic operation: operands are now type-matched (int or float)
+                let result = match (lhs_val.0, rhs_casted) {
+                    (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) =&gt; {
+                        let v = match name.as_str() {
+                            "+" =&gt; self.builder.build_int_add(l, r, "add").unwrap(),
+                            "-" =&gt; self.builder.build_int_sub(l, r, "sub").unwrap(),
+                            "*" =&gt; self.builder.build_int_mul(l, r, "mul").unwrap(),
+                            "/" =&gt; self.builder.build_int_signed_div(l, r, "div").unwrap(),
+                            "%" =&gt; self.builder.build_int_signed_rem(l, r, "rem").unwrap(),
+                            _ =&gt; unreachable!(),
+                        };
+                        v.as_basic_value_enum()
+                    }
+
+                    (BasicValueEnum::FloatValue(l), BasicValueEnum::FloatValue(r)) =&gt; {
+                        let v = match name.as_str() {
+                            "+" =&gt; self.builder.build_float_add(l, r, "fadd").unwrap(),
+                            "-" =&gt; self.builder.build_float_sub(l, r, "fsub").unwrap(),
+                            "*" =&gt; self.builder.build_float_mul(l, r, "fmul").unwrap(),
+                            "/" =&gt; self.builder.build_float_div(l, r, "fdiv").unwrap(),
+                            "%" =&gt; self.builder.build_float_rem(l, r, "frem").unwrap(),
+                            _ =&gt; unreachable!(),
+                        };
+                        v.as_basic_value_enum()
+                    }
+
+                    _ =&gt; unreachable!(),
+                };
+
+                Some((result, lhs_val.1, None))
+            }
+            // float Special Functions
+            "sqrt" | "cos" | "sin" | "pow" | "exp" | "log" =&gt; {
+                let compiled_args: Vec&lt;BasicValueEnum&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap().0;
+                        val
+                    })
+                    .collect();
+                // check first argument
+                let val_l = match compiled_args[0] {
+                    BasicValueEnum::FloatValue(v) =&gt; v,
+                    // unwrap is safe here because only float arguments are allowed for these intrinsics
+                    _ =&gt; panic!("{} require f values", name.as_str()),
+                };
+                // If the function takes a second argument (e.g., pow), ensure it is a float
+                let val_r = if compiled_args.len() &gt; 1 {
+                    match compiled_args[1] {
+                        BasicValueEnum::FloatValue(v) =&gt; Some(v),
+                        // unwrap is safe here because only float arguments are allowed for these intrinsics
+                        _ =&gt; panic!("at {} expected float", name.as_str()),
+                    }
+                } else {
+                    None
+                };
+                match name.as_str() {
+                    "sqrt" =&gt; Some((
+                        self.call_intrinsic("llvm.sqrt.f64", val_l, val_r),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    "cos" =&gt; Some((
+                        self.call_intrinsic("llvm.cos.f64", val_l, val_r),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    "sin" =&gt; Some((
+                        self.call_intrinsic("llvm.sin.f64", val_l, val_r),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    "pow" =&gt; Some((
+                        self.call_intrinsic("llvm.pow.f64", val_l, val_r),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    "exp" =&gt; Some((
+                        self.call_intrinsic("llvm.exp.f64", val_l, val_r),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    "log" =&gt; Some((
+                        self.call_intrinsic("llvm.log.f64", val_l, val_r),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    _ =&gt; None,
+                }
+            }
+            // Compile binary comparison operations. Returns boolean i1 value.
+            "==" | "!=" | "&lt;=" | "&gt;=" | "&lt;" | "&gt;" =&gt; {
+                let compiled_args: Vec&lt;BasicValueEnum&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap().0;
+                        val
+                    })
+                    .collect();
+                let v = match name.as_str() {
+                    "==" =&gt; Some(
+                        self.build_eq(compiled_args[0], compiled_args[1])
+                            .as_basic_value_enum(),
+                    ),
+                    "!=" =&gt; Some(
+                        self.build_neq(compiled_args[0], compiled_args[1])
+                            .as_basic_value_enum(),
+                    ),
+                    "&lt;" =&gt; Some(
+                        self.build_lt(compiled_args[0], compiled_args[1])
+                            .as_basic_value_enum(),
+                    ),
+                    "&gt;" =&gt; Some(
+                        self.build_gt(compiled_args[0], compiled_args[1])
+                            .as_basic_value_enum(),
+                    ),
+                    "&lt;=" =&gt; Some(
+                        self.build_le(compiled_args[0], compiled_args[1])
+                            .as_basic_value_enum(),
+                    ),
+                    "&gt;=" =&gt; Some(
+                        self.build_ge(compiled_args[0], compiled_args[1])
+                            .as_basic_value_enum(),
+                    ),
+                    _ =&gt; None,
+                };
+                Some((
+                    v.expect("Unsupported comparison operator"),
+                    Expr::Ident("bool".to_string()),
+                    None,
+                ))
+            }
+            // Bitwise Operations
+            //and,or,xor,left shift,right shift(sign extend is true),right shift(sign extend is false)
+            "&amp;" | "|" | "^" | "&lt;&lt;" | "&gt;&gt;" | "l&gt;&gt;" =&gt; {
+                let compiled_args: Vec&lt;(
+                    BasicValueEnum,
+                    Expr,
+                    Option&lt;VariablesPointerAndTypes&gt;,
+                )&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap();
+                        val
+                    })
+                    .collect();
+                let val_l = match compiled_args[0].0 {
+                    BasicValueEnum::IntValue(v) =&gt; v,
+                    _ =&gt; panic!("{} require i values", name.as_str()),
+                };
+                let val_r = match compiled_args[1].0 {
+                    BasicValueEnum::IntValue(v) =&gt; v,
+                    _ =&gt; panic!("{} require i values", name.as_str()),
+                };
+                // compiled_args[0].clone().1 is type of first argument
+                // return type is type of  first argument
+                match name.as_str() {
+                    "&amp;" =&gt; Some((
+                        self.builder
+                            .build_and(val_l, val_r, "and_tmp")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        compiled_args[0].clone().1,
+                        None,
+                    )),
+                    "|" =&gt; Some((
+                        self.builder
+                            .build_or(val_l, val_r, "or_tmp")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        compiled_args[0].clone().1,
+                        None,
+                    )),
+                    "^" =&gt; Some((
+                        self.builder
+                            .build_xor(val_l, val_r, "xor_tmp")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        compiled_args[0].clone().1,
+                        None,
+                    )),
+                    "&lt;&lt;" =&gt; Some((
+                        self.builder
+                            .build_left_shift(val_l, val_r, "&lt;&lt;_tmp")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        compiled_args[0].clone().1,
+                        None,
+                    )),
+                    "&gt;&gt;" =&gt; Some((
+                        self.builder
+                            .build_right_shift(val_l, val_r, true, "&gt;&gt;_tmp")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        compiled_args[0].clone().1,
+                        None,
+                    )),
+                    "l&gt;&gt;" =&gt; Some((
+                        self.builder
+                            .build_right_shift(val_l, val_r, false, "l&gt;&gt;_tmp")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        compiled_args[0].clone().1,
+                        None,
+                    )),
+                    _ =&gt; panic!("Unsupported bitwise operator: {}", name),
+                }
+            }
+            // Bool Operations
+            // &amp;&amp; = and, || = or
+            "&amp;&amp;" | "||" | "and" | "or" =&gt; {
+                let compiled_args: Vec&lt;(
+                    BasicValueEnum,
+                    Expr,
+                    Option&lt;VariablesPointerAndTypes&gt;,
+                )&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap();
+                        val
+                    })
+                    .collect();
+                let lhs_i1 = match compiled_args[0].0 {
+                    BasicValueEnum::IntValue(v) if v.get_type().get_bit_width() == 1 =&gt; v,
+                    _ =&gt; panic!("{} require bool values", name.as_str()),
+                };
+                let rhs_i1 = match compiled_args[1].0 {
+                    BasicValueEnum::IntValue(v) if v.get_type().get_bit_width() == 1 =&gt; v,
+                    _ =&gt; panic!("{} require bool values", name.as_str()),
+                };
+                let v = match name.as_str() {
+                    "&amp;&amp;" | "and" =&gt; Some(
+                        self.builder
+                            .build_and(lhs_i1, rhs_i1, "and")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                    ),
+                    "||" | "or" =&gt; Some(
+                        self.builder
+                            .build_or(lhs_i1, rhs_i1, "or")
+                            .unwrap()
+                            .as_basic_value_enum(),
+                    ),
+                    _ =&gt; None,
+                };
+                Some((v.unwrap(), Expr::Ident("bool".to_string()), None))
+            }
+            // Bit Reverse
+            "!" | "not" =&gt; {
+                let compiled_args: Vec&lt;(BasicValueEnum, Expr, Option&lt;_&gt;)&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap();
+                        val
+                    })
+                    .collect();
+                let val_i1 = match compiled_args[0].0 {
+                    BasicValueEnum::IntValue(v) =&gt; v,
+                    _ =&gt; panic!("{} require int or bool values", name.as_str()),
+                };
+                Some((
+                    self.builder
+                        .build_not(val_i1, "not_tmp")
+                        .unwrap()
+                        .as_basic_value_enum(),
+                    compiled_args[0].clone().1,
+                    None,
+                ))
+            }
+            // Cast to numeric types
+            // char, i32/i64, f32/f64 -&gt; cast to i64 or f64
+            // String -&gt; parsed to i64 or f64
+            "as_i64" | "as_f64" =&gt; {
+                let compiled_args: Vec&lt;(BasicValueEnum, Expr, Option&lt;_&gt;)&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self
+                            .compile_expr(arg, variables)
+                            .expect("argument must have value");
+                        val
+                    })
+                    .collect();
+
+                match name.as_str() {
+                    "as_i64" =&gt; Some((
+                        self.build_cast_to_i64(compiled_args[0].0)
+                            .as_basic_value_enum(),
+                        Expr::Ident("i64".to_string()),
+                        None,
+                    )),
+                    "as_f64" =&gt; Some((
+                        self.build_cast_to_f64(compiled_args[0].0)
+                            .as_basic_value_enum(),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    _ =&gt; None,
+                }
+            }
+            // Deprecated names for backward compatibility
+            // They behave the same as "as_i64" | "as_f64"
+            // Kept to allow older code to continue working
+            "parse_i64" | "parse_f64" =&gt; {
+                let compiled_args: Vec&lt;(BasicValueEnum, Expr, Option&lt;_&gt;)&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap();
+                        val
+                    })
+                    .collect();
+                match name.as_str() {
+                    "parse_i64" =&gt; Some((
+                        self.build_cast_to_i64(compiled_args[0].0)
+                            .as_basic_value_enum(),
+                        Expr::Ident("i64".to_string()),
+                        None,
+                    )),
+                    "parse_f64" =&gt; Some((
+                        self.build_cast_to_f64(compiled_args[0].0)
+                            .as_basic_value_enum(),
+                        Expr::Ident("f64".to_string()),
+                        None,
+                    )),
+                    _ =&gt; None,
+                }
+            }
+            // Pure if expression: if(cond, then_val, else_val)
+            // Both 'then_val' and 'else_val' are always evaluated.
+            // Avoid side effects in either branch.
+            "if" =&gt; {
+                let compiled_args: Vec&lt;(BasicValueEnum, Expr, Option&lt;_&gt;)&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap();
+                        val
+                    })
+                    .collect();
+                Some((
+                    self.build_if_expr(
+                        compiled_args[0].0,
+                        compiled_args[1].0,
+                        compiled_args[2].0,
+                        "if",
+                    ),
+                    compiled_args[1].clone().1,
+                    None,
+                ))
+            }
+            // Print with newline
+            "println" =&gt; {
+                let s_val = self.compile_expr(&amp;args[0], variables).unwrap();
+                let str_ptr = match s_val.0 {
+                    BasicValueEnum::PointerValue(p) =&gt; p,
+                    _ =&gt; panic!("println expects string pointer"),
+                };
+                self.build_println_from_ptr(str_ptr);
+                None
+            }
+            // Print without newline
+            "print" =&gt; {
+                let s_val = self.compile_expr(&amp;args[0], variables).unwrap();
+                let str_ptr = match s_val.0 {
+                    BasicValueEnum::PointerValue(p) =&gt; p,
+                    _ =&gt; panic!("print expects string pointer"),
+                };
+                self.build_print_from_ptr(str_ptr);
+                None
+            }
+            // Wrapper of sprintf
+            "format" =&gt; {
+                // string pointer
+                let fmt_val = self.compile_expr(&amp;args[0], variables).unwrap();
+
+                let fmt_ptr = match fmt_val.0 {
+                    BasicValueEnum::PointerValue(p) =&gt; p,
+                    _ =&gt; panic!("format expects string pointer"),
+                };
+                // Remaining arguments: values to format
+                let arg_vals: Vec&lt;_&gt; = args[1..]
+                    .iter()
+                    .map(|a| self.compile_expr(a, variables).unwrap().0)
+                    .collect();
+                // Returns a string pointer containing the formatted string
+                let res_ptr = self.build_format_from_ptr(fmt_ptr, &amp;arg_vals);
+                Some((
+                    res_ptr.into(),
+                    Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![Expr::Ident("char".to_string())],
+                    },
+                    None,
+                ))
+            }
+            // Pointer addition in 1-byte units (like void* + n)
+            "ptr_add_byte" =&gt; {
+                // args: [ptr, idx] or [idx, ptr]
+                let val_l = self.compile_expr(&amp;args[0], variables).unwrap();
+                let val_r = self.compile_expr(&amp;args[1], variables).unwrap();
+
+                let (ptr_val, idx_int) = match (val_l.0, val_r.0) {
+                    (BasicValueEnum::PointerValue(p), BasicValueEnum::IntValue(i)) =&gt; {
+                        (p, self.int_to_i64(i))
+                    }
+                    (BasicValueEnum::IntValue(i), BasicValueEnum::PointerValue(p)) =&gt; {
+                        (p, self.int_to_i64(i))
+                    }
+                    _ =&gt; panic!("ptr_add expects (ptr, int) or (int, ptr)"),
+                };
+                // GEP using i8 as element type =&gt; 1 byte unit
+                let gep = unsafe {
+                    self.builder
+                        .build_gep(
+                            self.llvm_type_from_expr(&amp;Expr::Ident("T".to_string())), // 1byte
+                            ptr_val,
+                            &amp;[idx_int],
+                            "ptr_add_byte",
+                        )
+                        .unwrap()
+                };
+                // return as ptr:T (like void*)
+                // borrow checker doesn't check "ptr" type pointer
+                Some((
+                    gep.as_basic_value_enum(),
+                    Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![Expr::Ident("T".to_string())],
+                    },
+                    None,
+                ))
+            }
+            // Pointer addition in units of the pointed-to type
+            // Returns the same pointer type as the left operand
+            "ptr_add" =&gt; {
+                // args: [ptr, idx] or [idx, ptr]
+                let val_l = self.compile_expr(&amp;args[0], variables).unwrap();
+                let val_r = self.compile_expr(&amp;args[1], variables).unwrap();
+
+                let (ptr_val, idx_int) = match (val_l.0, val_r.0) {
+                    (BasicValueEnum::PointerValue(p), BasicValueEnum::IntValue(i)) =&gt; {
+                        (p, self.int_to_i64(i))
+                    }
+                    (BasicValueEnum::IntValue(i), BasicValueEnum::PointerValue(p)) =&gt; {
+                        (p, self.int_to_i64(i))
+                    }
+                    _ =&gt; panic!("ptr_add expects (ptr, int) or (int, ptr)"),
+                };
+                // GEP using the type pointed by left operand =&gt; adds in units of that type
+                let gep = unsafe {
+                    self.builder
+                        .build_gep(
+                            self.llvm_type_from_expr(&amp;expr_deref(&amp;val_l.1)),
+                            ptr_val,
+                            &amp;[idx_int],
+                            "ptr_add",
+                        )
+                        .unwrap()
+                };
+
+                Some((gep.as_basic_value_enum(), val_l.1, None))
+            }
+            // for backward compatibility
+            // non-multidimensional version of []
+            "index" =&gt; {
+                // args: [ptr, idx] or [idx, ptr] -&gt; load *(ptr + idx)
+                let a = self.compile_expr(&amp;args[0], variables).unwrap();
+                let b = self.compile_expr(&amp;args[1], variables).unwrap();
+                let (ptr_val, idx_int) = match (a.0, b.0) {
+                    (BasicValueEnum::PointerValue(p), BasicValueEnum::IntValue(i)) =&gt; {
+                        (p, self.int_to_i64(i))
+                    }
+                    (BasicValueEnum::IntValue(i), BasicValueEnum::PointerValue(p)) =&gt; {
+                        (p, self.int_to_i64(i))
+                    }
+                    _ =&gt; panic!("index expects (ptr,int) or (int,ptr)"),
+                };
+
+                let gep = unsafe {
+                    self.builder
+                        .build_gep(
+                            self.llvm_type_from_expr(&amp;expr_deref(&amp;a.1)),
+                            ptr_val,
+                            &amp;[idx_int],
+                            "idx_ptr",
+                        )
+                        .unwrap()
+                };
+                let loaded = self
+                    .builder
+                    .build_load(self.llvm_type_from_expr(&amp;expr_deref(&amp;a.1)), gep, "idx_load")
+                    .unwrap();
+                Some((
+                    loaded.as_basic_value_enum(),
+                    expr_deref(&amp;a.1),
+                    Some(VariablesPointerAndTypes {
+                        ptr: gep,
+                        typeexpr: expr_deref(&amp;a.1),
+                    }),
+                ))
+            }
+            // index access
+            // [](arr , e1 ,e2 ,...) = arr[e1][e2]...
+            "[]" =&gt; {
+                let depth = args.len(); // number of indices + 1 (for array pointer)
+                let arr_pointer = self.compile_expr(&amp;args[0], variables).unwrap();
+                let ptr_val = match arr_pointer.0 {
+                    BasicValueEnum::PointerValue(p) =&gt; p,
+                    _ =&gt; panic!("[] expect ptr,i64,i64,... found {:?}", arr_pointer.1),
+                };
+
+                let mut last_ptr = ptr_val;
+                let mut typeexp = arr_pointer.1;
+                for i in 1..depth {
+                    let (val, ty, _p) = self.compile_expr(&amp;args[i], variables).unwrap();
+                    let idx_int = match val {
+                        BasicValueEnum::IntValue(i_val) =&gt; self.int_to_i64(i_val),
+                        _ =&gt; panic!("[] expect ptr,i64,i64,... found {:?}", ty),
+                    };
+                    let gep = unsafe {
+                        self.builder
+                            .build_gep(
+                                self.llvm_type_from_expr(&amp;expr_deref(&amp;typeexp)),
+                                last_ptr,
+                                &amp;[idx_int],
+                                "idx_ptr",
+                            )
+                            .unwrap()
+                    };
+                    if i == depth - 1 {
+                        last_ptr = gep;
+                        break;
+                    }
+                    last_ptr = self
+                        .builder
+                        .build_load(
+                            self.llvm_type_from_expr(&amp;expr_deref(&amp;typeexp)),
+                            gep,
+                            "idx_load",
+                        )
+                        .unwrap()
+                        .into_pointer_value();
+                    typeexp = expr_deref(&amp;typeexp);
+                }
+                typeexp = expr_deref(&amp;typeexp);
+                let loaded = self
+                    .builder
+                    .build_load(self.llvm_type_from_expr(&amp;typeexp), last_ptr, "idx[]_load")
+                    .unwrap();
+                Some((
+                    loaded.as_basic_value_enum(),
+                    typeexp.clone(),
+                    Some(VariablesPointerAndTypes {
+                        ptr: last_ptr,
+                        typeexpr: typeexp.clone(),
+                    }),
+                ))
+            }
+            // Allocate memory on the stack
+            "alloc_array" | "alloc" =&gt; {
+                // args: [type_name, length_expr]
+
+                // type of elements
+                let elem_ty = self.llvm_type_from_expr(&amp;args[0]);
+
+                // capacity = IntValue
+                let len_val = self.compile_expr(&amp;args[1], variables).unwrap();
+                let len_val = match len_val.0 {
+                    BasicValueEnum::IntValue(i) =&gt; i,
+                    _ =&gt; panic!("alloc_array: length must be integer"),
+                };
+
+                // elem_ty must be IntType , FloatType or PointerType = bool,char,i32,i64,T,f64,f32,ptr,&amp;,&amp;mut,*
+
+                let array_ptr = self
+                    .builder
+                    .build_array_alloca(elem_ty, len_val, "array")
+                    .unwrap();
+
+                // let array_ptr = match elem_ty {
+                //     BasicTypeEnum::IntType(t) =&gt; self
+                //         .builder
+                //         .build_array_alloca(t, len_val, "array")
+                //         .unwrap(),
+                //     BasicTypeEnum::FloatType(t) =&gt; self
+                //         .builder
+                //         .build_array_alloca(t, len_val, "array")
+                //         .unwrap(),
+                //     BasicTypeEnum::PointerType(t) =&gt; self
+                //         .builder
+                //         .build_array_alloca(t, len_val, "array")
+                //         .unwrap(),
+                //     _ =&gt; panic!("alloc_array: unsupported type"),
+                // };
+                // Return as ptr:elem_ty
+                Some((
+                    array_ptr.as_basic_value_enum(),
+                    Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![args[0].clone()],
+                    },
+                    None,
+                ))
+            }
+            "free" =&gt; {
+                self.compile_free(&amp;args[0], variables);
+                None
+            }
+            // Transfer ownership of *:T variable
+            "pmove" =&gt; {
+                let (val, ty, ptr) = self.compile_expr(&amp;args[0], variables).unwrap();
+                match &amp;ty {
+                    // Expect variable identifier
+                    Expr::TypeApply { base, args: _ } if base == "*" =&gt; {
+                        if let Expr::Ident(var_name) = &amp;args[0] {
+                            // Check if variable has already been moved
+                            if let Some(owned) = self.current_owners.get_mut(var_name) {
+                                if !*owned {
+                                    println!(
+                                        "{} : at pmove \"{}\" already moved",
+                                        "Error".red().bold(),
+                                        var_name
+                                    );
+                                }
+                                *owned = false;
+                            }
+                            if let Some(owned) = self.scope_owners.owners[self.scope_owners.pos]
+                                .get_mut(var_name)
+                            {
+                                *owned = false;
+                            }
+                        }
+                    }
+                    Expr::TypeApply { base, args: _args } if base == "&amp;" || base == "&amp;mut" =&gt; {
+                        println!(
+                            "{} pmove expect *:T variables found {:?}",
+                            "Error".red().bold(),
+                            &amp;ty
+                        );
+                    }
+                    _ =&gt; {
+                        println!(
+                            "{} pmove expect *:T variables found {:?}",
+                            "Error".red().bold(),
+                            &amp;args[0]
+                        );
+                    }
+                }
+                Some((val, ty, ptr))
+            }
+            // immutable borrow
+            "p&amp;" =&gt; {
+                let (val, ty, ptr) = self.compile_expr(&amp;args[0], variables).unwrap();
+                Some((
+                    val,
+                    Expr::TypeApply {
+                        base: "&amp;".to_string(),
+                        args: vec![expr_deref(&amp;ty)],
+                    },
+                    ptr,
+                ))
+            }
+            // mutable borrow
+            "p&amp;mut" =&gt; {
+                let (val, ty, ptr) = self.compile_expr(&amp;args[0], variables).unwrap();
+                match &amp;ty {
+                    Expr::TypeApply { base, args: _args } if base == "&amp;" =&gt; {
+                        println!(
+                            "{}: p&amp;mut expect &amp;mut:T or *:T found {:?} {:?}",
+                            "Error".red().bold(),
+                            ty,
+                            &amp;args[0]
+                        )
+                    }
+                    _ =&gt; {}
+                }
+                Some((
+                    val,
+                    Expr::TypeApply {
+                        base: "&amp;mut".to_string(),
+                        args: vec![expr_deref(&amp;ty)],
+                    },
+                    ptr,
+                ))
+            }
+            // malloc(size,elements_type)
+            // malloc require pointed type for type safety
+            // this is safety wrapper of C malloc
+            "malloc" =&gt; {
+                let compiled_size = self.compile_expr(&amp;args[0], variables).unwrap();
+                let size = match compiled_size.0 {
+                    BasicValueEnum::IntValue(i) =&gt; Some(i),
+                    _ =&gt; panic!("malloc expects integer size"),
+                };
+                let ele_type = self.llvm_type_from_expr(&amp;args[1]);
+                // return ptr:elements_type
+                Some((
+                    self.compile_malloc(size.unwrap(), ele_type)
+                        .as_basic_value_enum(),
+                    Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![args[1].clone()],
+                    },
+                    None,
+                ))
+            }
+            // realloc(ptr ,size,elements_type)
+            // realloc require pointed type for type safety
+            // this is safety wrapper of C realloc
+            "realloc" =&gt; {
+                let ptr = match self.compile_expr(&amp;args[0], variables).unwrap().0 {
+                    BasicValueEnum::PointerValue(p) =&gt; p,
+                    _ =&gt; panic!("realloc expects (ptr,size,type)"),
+                };
+                let compiled_size = self.compile_expr(&amp;args[1], variables).unwrap();
+                let size = match compiled_size.0 {
+                    BasicValueEnum::IntValue(i) =&gt; Some(i),
+                    _ =&gt; panic!("realloc expects (ptr,size,type)"),
+                };
+                let ele_type = self.llvm_type_from_expr(&amp;args[2]);
+                // return ptr:elements_type
+                Some((
+                    self.compile_realloc(ptr, size.unwrap(), ele_type)
+                        .as_basic_value_enum(),
+                    Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![args[2].clone()],
+                    },
+                    None,
+                ))
+            }
+            // memcpy(dest,src,size)
+            "memcpy" =&gt; {
+                let dest_ptr = self.compile_expr(&amp;args[0], variables).unwrap();
+                let src_ptr = self.compile_expr(&amp;args[1], variables).unwrap();
+                let size = self.compile_expr(&amp;args[2], variables).unwrap();
+                let (dest_i8, src_i8, size_int) = match (dest_ptr.0, src_ptr.0, size.0) {
+                    (
+                        BasicValueEnum::PointerValue(d),
+                        BasicValueEnum::PointerValue(s),
+                        BasicValueEnum::IntValue(i),
+                    ) =&gt; (
+                        self.builder
+                            .build_pointer_cast(
+                                d,
+                                self.context.ptr_type(AddressSpace::default()),
+                                "dest8",
+                            )
+                            .unwrap(),
+                        self.builder
+                            .build_pointer_cast(
+                                s,
+                                self.context.ptr_type(AddressSpace::default()),
+                                "dest8",
+                            )
+                            .unwrap(),
+                        i,
+                    ),
+                    _ =&gt; panic!(
+                        "memcpy expects (ptr,ptr,int) found {:?},{:?},{:?}",
+                        dest_ptr.1, src_ptr.1, size.1
+                    ),
+                };
+                self.builder
+                    .build_memcpy(dest_i8, 1, src_i8, 1, size_int)
+                    .unwrap();
+
+                None
+            }
+            // memmove(dest,src,size)
+            "memmove" =&gt; {
+                let dest_ptr = self.compile_expr(&amp;args[0], variables).unwrap();
+                let src_ptr = self.compile_expr(&amp;args[1], variables).unwrap();
+                let size = self.compile_expr(&amp;args[2], variables).unwrap();
+                let (dest_i8, src_i8, size_int) = match (dest_ptr.0, src_ptr.0, size.0) {
+                    (
+                        BasicValueEnum::PointerValue(d),
+                        BasicValueEnum::PointerValue(s),
+                        BasicValueEnum::IntValue(i),
+                    ) =&gt; (
+                        self.builder
+                            .build_pointer_cast(
+                                d,
+                                self.context.ptr_type(AddressSpace::default()),
+                                "dest8",
+                            )
+                            .unwrap(),
+                        self.builder
+                            .build_pointer_cast(
+                                s,
+                                self.context.ptr_type(AddressSpace::default()),
+                                "dest8",
+                            )
+                            .unwrap(),
+                        i,
+                    ),
+                    _ =&gt; panic!(
+                        "memmove expects (ptr,ptr,int)found {:?},{:?},{:?}",
+                        dest_ptr.1, src_ptr.1, size.1
+                    ),
+                };
+                self.builder
+                    .build_memmove(dest_i8, 1, src_i8, 1, size_int)
+                    .unwrap();
+
+                None
+            }
+            // memmove(dest,value,size)
+            "memset" =&gt; {
+                let dest_ptr = self.compile_expr(&amp;args[0], variables).unwrap();
+                let src_val = self.compile_expr(&amp;args[1], variables).unwrap();
+                let size = self.compile_expr(&amp;args[2], variables).unwrap();
+                let (dest_i8, value, size_int) = match (dest_ptr.0, src_val.0, size.0) {
+                    (
+                        BasicValueEnum::PointerValue(d),
+                        BasicValueEnum::IntValue(v),
+                        BasicValueEnum::IntValue(s),
+                    ) =&gt; (
+                        self.builder
+                            .build_pointer_cast(
+                                d,
+                                self.context.ptr_type(AddressSpace::default()),
+                                "dest8",
+                            )
+                            .unwrap(),
+                        v,
+                        s,
+                    ),
+                    _ =&gt; panic!("memset expects (ptr,val,int)"),
+                };
+                let value_i8 = self
+                    .builder
+                    .build_int_truncate(value, self.context.i8_type(), "val8")
+                    .unwrap();
+                self.builder
+                    .build_memset(dest_i8, 1, value_i8, size_int)
+                    .unwrap();
+
+                None
+            }
+            //return type size in byte as i64
+            "sizeof" =&gt; Some((
+                self.compile_sizeof(&amp;args[0]),
+                Expr::Ident("i64".to_string()),
+                None,
+            )),
+            // === struct member access ===
+            // "_&gt;": struct pointer -&gt; member value (dereference pointer, then load member)
+            // ".": struct value -&gt; member value (use alloca of struct value, then load member)
+            // "-&gt;": struct pointer -&gt; member pointer (get pointer to member, do not load)
+            // struct member access
+            // struct pointer -&gt; member value
+            "_&gt;" =&gt; {
+                let value_struct = self.compile_expr(&amp;args[0], variables).unwrap();
+                let (memberptr, membertype) =
+                    self.compile_member_access(value_struct.0, &amp;args[1], &amp;value_struct.1);
+                let member_value = self
+                    .builder
+                    .build_load(
+                        self.llvm_type_from_expr(&amp;expr_deref(&amp;membertype)),
+                        memberptr,
+                        "getmembervalue",
+                    )
+                    .unwrap();
+                Some((
+                    member_value.into(),
+                    expr_deref(&amp;membertype),
+                    Some(VariablesPointerAndTypes {
+                        ptr: memberptr,
+                        typeexpr: expr_deref(&amp;membertype),
+                    }),
+                ))
+            }
+            // struct member access
+            // struct value -&gt; member value
+            "." =&gt; {
+                let value_struct = self.compile_expr(&amp;args[0], variables).unwrap();
+                let alloca = value_struct.2.unwrap().ptr;
+                let (memberptr, membertype) = self.compile_member_access(
+                    alloca.as_basic_value_enum(),
+                    &amp;args[1],
+                    &amp;Expr::TypeApply {
+                        base: "ptr".to_string(),
+                        args: vec![value_struct.1],
+                    },
+                );
+                let member_value = self
+                    .builder
+                    .build_load(
+                        self.llvm_type_from_expr(&amp;expr_deref(&amp;membertype)),
+                        memberptr,
+                        "getmembervalue",
+                    )
+                    .unwrap();
+                Some((
+                    member_value.into(),
+                    expr_deref(&amp;membertype),
+                    Some(VariablesPointerAndTypes {
+                        ptr: memberptr,
+                        typeexpr: expr_deref(&amp;membertype),
+                    }),
+                ))
+            }
+            // struct member access
+            // struct pointer -&gt; member pointer
+            "-&gt;" =&gt; {
+                let value_struct = self.compile_expr(&amp;args[0], variables).unwrap();
+                let (memberptr, membertype) =
+                    self.compile_member_access(value_struct.0, &amp;args[1], &amp;value_struct.1);
+                Some((memberptr.as_basic_value_enum().into(), membertype, None))
+            }
+            // wrapper of C scanf
+            "scanf" =&gt; {
+                let fmt_val = self.compile_expr(&amp;args[0], variables).unwrap();
+                // Remaining arguments: values to format
+                let fmt_ptr = match fmt_val.0 {
+                    BasicValueEnum::PointerValue(p) =&gt; p,
+                    _ =&gt; panic!("scanf expects string pointer"),
+                };
+                let arg_vals: Vec&lt;_&gt; = args[1..]
+                    .iter()
+                    .map(|a| self.compile_expr(a, variables).unwrap().0)
+                    .collect();
+                self.build_scan_from_ptr(fmt_ptr, &amp;arg_vals);
+                None
+            }
+            // cast to generic pointer
+            "to_anyptr" =&gt; {
+                // to_anyptr(ptr)
+                let ptr = self.compile_expr(&amp;args[0], variables);
+                match ptr.unwrap().0 {
+                    BasicValueEnum::PointerValue(p) =&gt; Some((
+                        self.compile_to_anyptr(p, variables).as_basic_value_enum(),
+                        Expr::TypeApply {
+                            base: "ptr".to_string(),
+                            args: vec![Expr::Ident("T".to_string())],
+                        },
+                        None,
+                    )),
+                    _ =&gt; None,
+                }
+            }
+            // cast from generic pointer
+            "from_anyptr" =&gt; {
+                // from_anyptr(ptr,pointed type)
+                let ptr = self.compile_expr(&amp;args[0], variables);
+                let target_type = self.llvm_type_from_expr(&amp;args[1]);
+                match (ptr.unwrap().0, target_type) {
+                    (BasicValueEnum::PointerValue(p), BasicTypeEnum::PointerType(target)) =&gt; {
+                        Some((
+                            self.compile_from_anyptr(p, target).as_basic_value_enum(),
+                            Expr::TypeApply {
+                                base: "ptr".to_string(),
+                                args: vec![args[1].clone()],
+                            },
+                            None,
+                        ))
+                    }
+                    _ =&gt; None,
+                }
+            }
+            // Call other functions
+            name =&gt; {
+                // Lookup LLVM function by name.
+                let func = self
+                    .module
+                    .get_function(&amp;name)
+                    .expect(&amp;format!("Function {} not found", name));
+                // Compile each argument and convert to BasicMetadataValueEnum,
+                // which is required by build_call.
+                let compiled_args: Vec&lt;BasicMetadataValueEnum&gt; = args
+                    .into_iter()
+                    .map(|arg| {
+                        let val = self.compile_expr(arg, variables).unwrap();
+                        BasicMetadataValueEnum::from(val.0)
+                    })
+                    .collect();
+                // Emit LLVM call instruction
+                let call_site = self
+                    .builder
+                    .build_call(func, &amp;compiled_args, "calltmp")
+                    .unwrap();
+                // If the function has a return value, extract it.
+                if func.get_type().get_return_type().is_some() {
+                    Some((
+                        call_site.try_as_basic_value().basic().unwrap(),
+                        // return type is stored in function_types map (AST-level type)
+                        self.function_types
+                            .get(name)
+                            .expect(&amp;format!("not defined function {}", name))
+                            .clone(),
+                        None,
+                    ))
+                } else {
+                    None // return is void
+                }
+            }
+        },
+
+        _ =&gt; None,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>お疲れ様です。この本でのWapLコンパイラの作り方の説明は一旦ここまでにしておきます。ソースコードは<a href="https://github.com/kazanefu/WapL_Compiler">https://github.com/kazanefu/WapL_Compiler</a>で公開されているので興味があれば見てみてください。もし問題点を見つけたり改善をしてくれたら遠慮なく報告していただけるとありがたいです。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="clangllvm--21のインストールubuntu系想定"><a class="header" href="#clangllvm--21のインストールubuntu系想定">Clang/LLVM -21のインストール(Ubuntu系想定)</a></h1>
 <p>以下のコマンドを順に打って最後に<code>clang-21 --version</code>でバージョンが出力されたら成功です。</p>

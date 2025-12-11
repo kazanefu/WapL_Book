@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e254d48f.js";
+            window.path_to_searchindex_js = "searchindex-f835dca1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b88c102b.js"></script>
+        <script src="toc-1969de89.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,7 +194,7 @@
 5
 0
 </code></pre>
-<p>このように変数の宣言は<code>#=(変数名,初期値,型)</code>の形式で行います。また、初期値なしで宣言する場合は<code>_</code>を初期値の入れます。また、代入は<code>=(変数,値)</code>という形式で記述します。宣言に伴う初期値、代入する値ともに一部例外を除いて型が変数の型と一致する必要があります。</p>
+<p>このように変数の宣言は<code>#=(変数名,初期値,型)</code>の形式で行います。また、初期値なしで宣言する場合は<code>_</code>を初期値の入れます。また、代入は<code>=(変数,値)</code>という形式で記述します。</p>
 <pre><code class="language-wapl">fn main():i32{
     #=(x,_,i64);
     println(format("%d",x));// 代入されてないので0が出力される.
@@ -202,6 +202,35 @@
 }
 </code></pre>
 <p>このように値を代入せずに読み取るとエラーは出ませんが思わぬ値が渡される可能性があるので必ず読み取る前に値を代入するようにします。</p>
+<p>宣言に伴う初期値は一部例外を除いて型が変数の型と一致する必要があります。以下のようなプログラムは<code>x</code>を<code>i64</code>の型で宣言しているにも関わらず、初期値が<code>'5'</code>と<code>char</code>型になっているためコンパイル時にエラーが出ます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x,'5',i64);
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">Error: x Type miss match : expected Ident("i64") found Ident("char")
+</code></pre>
+<p><strong>シャドーイング</strong></p>
+<p>内側のスコープで外側にあるのと同じ名前で新たに変数を宣言すると、前の変数は新しい変数に覆い隠され、そのスコープより内側では新しい変数の値が現れます。また、そのスコープを抜ければ再び前の変数の値が現れるようになります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x,5,i64);
+    #=(x,+(x,5),i64);
+
+    loopif:inner(true){
+        #=(x,*(x,2),i64);
+        println(format("The value of x in the inner scope is: %d",x));
+        warpto(break-inner);
+    }
+    
+    println(format("The value of x is: %d",x));
+    
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">The value of x in the inner scope is: 20
+The value of x is: 10
+</code></pre>
+<p>このコードではまず<code>x</code>を<code>5</code>という値に束縛します。それから<code>#=(x,...</code>をもう一度行い、<code>x</code>をもとの値に<code>5</code>を足した値、つまり<code>10</code>で覆い隠します。次にスコープの中に入って<code>#=</code>で3回目の宣言でさらに元の値の2倍の<code>20</code>で覆い隠します。ここで、<code>x</code>を読み取るともちろん<code>20</code>です。スコープを抜けると3回目の宣言でのシャドーイングが終了するため<code>x</code>を読み取ると2回目の宣言による<code>10</code>が現れます。</p>
 
                     </main>
 

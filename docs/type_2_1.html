@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e254d48f.js";
+            window.path_to_searchindex_js = "searchindex-f835dca1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b88c102b.js"></script>
+        <script src="toc-1969de89.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,6 +177,115 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="基本的な型"><a class="header" href="#基本的な型">基本的な型</a></h1>
+<p>コンパイラ版WapLは<strong>静的型付き</strong>言語であり、コンパイル時にすべての変数の型が判明している必要があります。基本的に型は変数や関数の宣言時に明示的に書く必要があり、それ以降は型推論が効きます。</p>
+<p><strong>スカラー型</strong></p>
+<p>スカラー型は、単独の値を表します。WapLにおいては主に4つのスカラー型があります: 整数、浮動小数点数、論理値、文字、です。</p>
+<p><strong>整数型</strong></p>
+<p>WapLでは2種類の整数型があります:<code>i32</code>と<code>i64</code>です。それぞれ32-bit、64-bitの符号ありの整数です。符号ありなので例えば<code>i32</code>だと$-(2^{31})$から$2^{31}-1$まで表現できます。</p>
+<p>整数リテラルは小数点を含まないただの整数は<code>i64</code>になり、末尾に<code>s</code>をつけると<code>i32</code>になります。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>型</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td>i64</td><td>-123</td></tr>
+<tr><td>i32</td><td>42s</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>浮動小数点型</strong></p>
+<p>整数型と同様に浮動小数点型にも32-bitと64-bitのものがあります:<code>f32</code>と<code>f64</code>です。</p>
+<p>浮動小数点リテラルは小数点を持つ数値です。また、浮動小数点リテラルも整数リテラル同様に32-bitなら<code>s</code>を末尾につけ、つけなければ<code>f64</code>として扱われます。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>型</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td>f64</td><td>-123.45</td></tr>
+<tr><td>f32</td><td>42.0s</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>数値演算</strong></p>
+<p>WapLにも全数値型に期待されうる標準的な数学演算が用意されています: 足し算、引き算、掛け算、割り算、余りです。WapLで特徴的なのは異なる型で数値演算を行った際には左側の型に合わせて自動でキャストされるということです。</p>
+<pre><code class="language-wapl">fn main():i32{
+    // 足し算
+    #=(sum, +(5,20.2), i64);// 25
+
+    // 引き算
+    #=(difference, -(10.5,3), f64);// 7.5
+
+    // 掛け算
+    #=(product, *(42,5), i64);// 210
+
+    // 割り算
+    #=(quotient, /(49.54,10.0), f64);// 4.954
+    #=(floored, /(2,3), i64);// 0
+
+    // 余り
+    #=(remainder, %(43,5), i64);// 3
+
+    return 0s;
+}
+</code></pre>
+<p>これらの文の各式は、数学演算子を使用しており、一つの値に評価され、そして、変数に束縛されます。</p>
+<p><strong>論理値型</strong></p>
+<p>WapLの論理値型:<code>bool</code>は<code>true</code>と<code>false</code>の二つの値をとることができます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(t, true, bool);
+    #=(f, false, bool);
+    return 0s;
+}
+</code></pre>
+<p><strong>文字型</strong></p>
+<p>WapLで文字は<code>char</code>型で扱います。<code>char</code>は8-bitであるためASCIIまでしか扱えません。また、文字リテラルはシングルクォーテーションで囲みます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(c1, 'A', char);
+    #=(c2, '\x41', char);
+    #=(c3, '\u{41}',char);
+    println(format("%c",c1));
+    println(format("%c",c2));
+    println(format("%c",c3));
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">A
+A
+A
+</code></pre>
+<p>これらはすべて<code>A</code>を表します。</p>
+<p><strong>ポインタ型</strong></p>
+<p>WapLでは配列や文字列などもポインタ型であらわします。ポインタ型には4種類あり、<code>ptr:T</code> <code>*:T</code> <code>&amp;:T</code> <code>&amp;mut:T</code>があり、<code>T</code>のところにポインタが指す型が入ります。ポインタのポインタだったりする場合は<code>ptr:ptr:T</code>のようになります。それぞれのポインタ型の詳しい説明は<a href="./ownerandborrow_3.html">第3章 簡易的な所有権/借用</a>でします。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(str, "hello", ptr:char);
+    println(format("%s",str));
+
+    #=(arr, alloc(i64,5), ptr:i64);
+    =(arr, Array(3,1,4,1,5));
+    #=(i,0,i64);
+    loopif:(&lt;(i,5)){
+        println(format("%d", [](arr,i)));
+        =(i,+(i,1));
+    }
+
+    #=(x, 10, i64);
+    #=(p, &amp;_(x), ptr:i64);
+    println(format("%d", *_(p)));
+
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">hello
+3
+1
+4
+1
+5
+10
+</code></pre>
+<p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>alloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
 
                     </main>
 

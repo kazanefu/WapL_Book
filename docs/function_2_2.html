@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e254d48f.js";
+            window.path_to_searchindex_js = "searchindex-f835dca1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b88c102b.js"></script>
+        <script src="toc-1969de89.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,6 +177,75 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="関数"><a class="header" href="#関数">関数</a></h1>
+<p>WapLでは1.2で述べたように基本的に<code>main</code>関数がエントリーポイントになります。しかし、<code>main</code>以外の関数をエントリーポイントのようにすることも可能です。</p>
+<pre><code class="language-wapl">fn start(){
+    println("Hello, Start!");
+}
+start();
+</code></pre>
+<p>これは内部的には一番最後の<code>start()</code>の呼び出しが<code>_TOPLEVEL_</code>という見えない関数に入れられて、<code>_TOPLEVEL_</code>が最初に呼ばれて関数の外に書いてある処理を順に行うので<code>start</code>関数が呼ばれています。</p>
+<p>WapLでは関数は必ず関数の呼び出しより上で関数の定義がされている必要があります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    another();
+    return 0s;
+}
+fn another():void{
+    println("Hello, from another function!");
+}
+</code></pre>
+<pre><code class="language-bash">Function another not found
+</code></pre>
+<p>のようにエラーがでます。これを正しく動くようにするためには以下のような順で書く必要があります。</p>
+<pre><code class="language-wapl">fn another():void{
+    println("Hello, from another function!");
+}
+fn main():i32{
+    another();
+    return 0s;
+}
+</code></pre>
+<p>または宣言だけを先に置くことでも解決できます:</p>
+<pre><code class="language-wapl">declare another():void;
+fn main():i32{
+    another();
+    return 0s;
+}
+fn another():void{
+    println("Hello, from another function!");
+}
+</code></pre>
+<p>このように関数の定義は<code>fn</code>、宣言は<code>declare</code>で行います。</p>
+<p><strong>関数の引数</strong></p>
+<p>引数は関数のシグネチャの一部になる特別な変数のことで、宣言時には実引数は作らなくてよく、<code>()</code>の中に型のみを<code>,</code>区切りで列挙し、関数の宣言のときは型と変数名を書きます。</p>
+<pre><code class="language-wapl">declare another_function(i64,i64);
+fn main():i32{
+    another_function(5,3)
+    return 0s;
+}
+fn another_function(i64 x,i64 y){
+    println(format("%d,%d",x,y));
+}
+</code></pre>
+<p><strong>戻り値のある関数</strong></p>
+<p>引数を書いた括弧の後ろに戻り値がある場合は<code>:</code>で区切ってその後に戻り値の型を書きます。また<code>return</code>で戻り値を返します。:</p>
+<pre><code class="language-wapl">fn five():i64{
+    return 5;
+}
+fn main():i32{
+    println(format("five() return %d",five()));
+    return 0s;
+}
+</code></pre>
+<p>ここでは<code>five</code>関数の戻り値の型は<code>i64</code>で<code>return</code>で<code>5</code>を返しています。<code>declare</code>で宣言をするときも同様です。</p>
+<pre><code class="language-wapl">declare five():i64;
+fn main():i32{
+    println(format("five() return %d",five()));
+    return 0s;
+}
+fn five():i64{
+    return 5;
+}
+</code></pre>
 
                     </main>
 
