@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f835dca1.js";
+            window.path_to_searchindex_js = "searchindex-be0a98ea.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1969de89.js"></script>
+        <script src="toc-a3c325ba.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,9 @@
 <pre><code class="language-bash">$ sudo ./llvm.sh 21
 </code></pre>
 <pre><code class="language-bash">$ clang-21 --version
+</code></pre>
+<p>この方法でインストールした場合プロジェクト内のwapl.tomlのclangの欄を<code>"clang-21"</code>に書き変えるか以下のようにして<code>clang</code>を<code>clang-21</code>になるようにしておく必要があるかもしれません</p>
+<pre><code class="language-bash">sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
 </code></pre>
 
                     </main>

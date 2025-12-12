@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f835dca1.js";
+            window.path_to_searchindex_js = "searchindex-be0a98ea.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1969de89.js"></script>
+        <script src="toc-a3c325ba.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -262,7 +262,7 @@ A
     #=(str, "hello", ptr:char);
     println(format("%s",str));
 
-    #=(arr, alloc(i64,5), ptr:i64);
+    #=(arr, salloc(i64,5), ptr:i64);
     =(arr, Array(3,1,4,1,5));
     #=(i,0,i64);
     loopif:(&lt;(i,5)){
@@ -285,7 +285,7 @@ A
 5
 10
 </code></pre>
-<p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>alloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
+<p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>salloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
 
                     </main>
 

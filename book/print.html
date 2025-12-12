@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f835dca1.js";
+            window.path_to_searchindex_js = "searchindex-be0a98ea.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1969de89.js"></script>
+        <script src="toc-a3c325ba.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -527,7 +527,7 @@ A
     #=(str, "hello", ptr:char);
     println(format("%s",str));
 
-    #=(arr, alloc(i64,5), ptr:i64);
+    #=(arr, salloc(i64,5), ptr:i64);
     =(arr, Array(3,1,4,1,5));
     #=(i,0,i64);
     loopif:(&lt;(i,5)){
@@ -550,7 +550,7 @@ A
 5
 10
 </code></pre>
-<p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>alloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
+<p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>salloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="関数"><a class="header" href="#関数">関数</a></h1>
 <p>WapLでは1.2で述べたように基本的に<code>main</code>関数がエントリーポイントになります。しかし、<code>main</code>以外の関数をエントリーポイントのようにすることも可能です。</p>
@@ -705,6 +705,136 @@ LOOP1:4
 <p>このように<code>loopif</code>は名前ありでも名前なしでも作ることができ、ループを抜けたいときは<code>break-名前</code>に飛ぶことで抜けることができ、以下の処理をせずに条件の評価に戻りたいときは<code>continue-名前</code>に飛ぶことでできる。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="簡易的な所有権借用"><a class="header" href="#簡易的な所有権借用">簡易的な所有権/借用</a></h1>
+<p>WapLの所有権はRustの所有権を参考にしてより簡易的で緩いチェックではあるものの、ある程度の安全性をコンパイル時に担保できます。この章では、所有権の挙動とポインタの使い方について話していきます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="waplでの簡易的な所有権"><a class="header" href="#waplでの簡易的な所有権">WapLでの簡易的な所有権</a></h1>
+<p>所有権と聞いたらまずRust言語を思い浮かべる人が多いでしょう。WapLでもRustの所有権を参考にしてとても簡易的なものではありますが所有権によってメモリリークや多重解放をコンパイル時に検出してエラーを出せます。ただし、WapLではRustの所有権よりもチェックは極めて緩く、例えばメモリ競合や多次元配列のメモリリークなどは防ぐことはできません。また、メモリの確保と解放は自動では行われずC言語のように明示的に記述する必要もあります。とはいえ、明示的に所有者や借用やムーブを記述するため、プログラマはメモリ安全を意識してコーディングができるでしょう。WapLの簡易的な所有権はRustのともまた少し異なるため慣れるまでに少し時間がかかるかもしれませんが、慣れてしまえばガベージコレクションのようなランタイム処理によるオーバーヘッドなしで安全なコードを書くことができます。</p>
+<p><strong>所有権規則</strong></p>
+<p>所有権のルールは以下の通りです</p>
+<ul>
+<li>ヒープ上にある値に対して所有者であるポインタがただ一つ存在する。</li>
+<li>所有者はスコープを抜けるまでに解放または所有権の譲渡がされていなければいけない。</li>
+</ul>
+<p><strong>変数スコープ</strong></p>
+<p>スコープとは、変数が有効な範囲のことです。基本的にWapLでは<code>{}</code>で囲まれた範囲が一つのローカルスコープになります。</p>
+<pre><code class="language-wapl">fn main():i32{ // aはまだ有効ではない
+    #=(a, 10, i64); // aが有効になる
+    loopif:Scope(true){ // sはまだ宣言されていないため有効ではない
+        #=(s, "hello", ptr:char); // ここでsが有効になる
+        warpto(break-Scope);
+    } // スコープが終わりsは無効になる
+    return 0s; // スコープが終わりaが無効になる
+}
+</code></pre>
+<p>コメントで書いたようにスコープを抜けるまではそのスコープの中で宣言された変数は有効で、スコープを抜けたときに無効になります。</p>
+<p><strong>メモリ確保</strong></p>
+<p>WapLには2種類のメモリ確保があります。必要なサイズのメモリをヒープ領域から動的に取ってくる<code>malloc</code>とメモリをスタック領域に確保する<code>salloc</code>があります。スタック確保の場合は関数を抜けると自動的に解放され、返り値として関数の外に持ち出すことはできません。一方、ヒープ確保の場合は<code>free</code>で解放する必要があり、所有権のチェックの対象です。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(sz, sizeof(i64), i64); // i64の型のバイト数
+    #=(h, malloc(*(sz,10),i64), *:i64); // ヒープ確保してi64のポインタに割り当てる
+
+    #=(s, salloc(i64,10), ptr:i64); // スタック確保してi64のポインタに割り当てる
+
+    free(pmove(h)); // ヒープ確保したhを解放する
+
+    return 0s;
+}
+</code></pre>
+<p><code>malloc</code>のときはサイズは変数でいいですが、<code>salloc</code>のときはサイズがi64リテラルである必要があります。また、ここでそれぞれ型名が<code>*:i64</code>と<code>ptr:i64</code>で異なる理由は次に説明します。</p>
+<p><strong>4種類のポインタ型</strong></p>
+<p>第2章の基本的な型で少し触れたとおりWapLには4種類のポインタがあります:<code>ptr:T</code> <code>*:T</code> <code>&amp;:T</code> <code>&amp;mut:T</code>です。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>型</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td>ptr</td><td>所有権のチェックを一切受けず、スタック上のメモリやより自由な操作がしたいときの用いる</td></tr>
+<tr><td>*</td><td>ヒープ確保される所有者ポインタで、値に対してただ一つのみ存在し、スコープを抜けるまでに<code>pmove</code>で譲渡される必要がある</td></tr>
+<tr><td>&amp;</td><td>不変借用ポインタで値の書き変えと<code>pmove</code>が禁止されている</td></tr>
+<tr><td>&amp;mut</td><td>可変借用ポインタで値の書き変えはできるが<code>pmove</code>は禁止されている</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-wapl">fn main():i32{
+    #=(sz, sizeof(i64), i64)
+    #=(owner, malloc(*(sz,10),i64), *:i64); // 所有者
+    =(owner, Array(1,2,3,4,5,6,7,8,9,0)); // 値を入れる
+
+    #=(immut, p&amp;(owner), &amp;:i64); // 不変借用
+    #=(mutable, p&amp;mut(owner), &amp;mut:i64); // 可変借用
+
+    =([](mutable,5),10); // &amp;mutは書き変え可能
+    
+    #=(i,0,i64)
+    loopif:(&lt;(i,10)){
+        println(format("%d",[](owner,i)));
+        =(i,+(i,1));
+    }
+
+    #=(owner2, pmove(owner), *:i64); // 所有権をownerからowner2に譲渡し以降ownerは使えない
+
+    free(pmove(owner2)); // 所有者を解放
+
+    return 0s;
+}
+</code></pre>
+<p><strong>所有権の譲渡:ムーブ</strong></p>
+<p>先ほどのポインタ型の説明での<code>#=(owner2, pmove(owner), *:i64)</code>のように所有権を譲渡した後、前の所有者は無効になり、アクセスしようとするとエラーが出ます。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(sz, sizeof(i64), i64)
+    #=(owner, malloc(*(sz,10),i64), *:i64); // 所有者
+    
+    #=(owner2, pmove(owner), *:i64); // 所有権をownerからowner2に譲渡し以降ownerは使えない
+
+    free(pmove(owner)); // 前の所有者を解放しようとしているためエラー
+    
+    free(pmove(owner2));
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">Error:"owner" already moved. it is prohibited to read moved pointer
+Error : at pmove "owner" already moved
+</code></pre>
+<p>これにより二重解放を防ぐことができます。</p>
+<p><strong>所有者の責任</strong></p>
+<p>所有者はスコープを抜けるまでに所有権を譲渡するか解放する必要があります。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(sz, sizeof(i64), i64)
+    #=(p, malloc(*(sz,10),i64), *:i64); // 所有者
+    return 0s; // まだ譲渡も解放もしてない
+}
+</code></pre>
+<pre><code class="language-bash">Error:you need to free or drop pointer p!
+</code></pre>
+<p>このようにエラーが出ることでメモリリークを防げます。</p>
+<p><strong>借用と参照</strong></p>
+<p>先ほどのポインタ型の説明でもあったようにWapLでは<code>p&amp;</code>や<code>p&amp;mut</code>で同じ場所を指す所有権を持たないポインタを作ることができます。WapLではこれを借用と呼んでいます。Rustでは関数の引数に参照を取ることを借用と呼んでいますがWapLでは少し異なり、借用はポインタから作ります。WapLにもRustのように<code>&amp;_(値を持つ変数)</code>で参照を生成することもでき、これはその変数の値が格納されてるアドレスを指すポインタを返しています。また、実際は<code>p&amp;</code>や<code>p&amp;mut</code>はほとんど何もしておらず、受け取る側の型によってそのポインタをどのポインタ型として扱うかを決定しており、どのような形でポインタを渡しているのかを明示的に書くようにしているだけです。</p>
+<p>参照の逆は参照外しであり、<code>*_(ポインタ変数)</code>または<code>*_(ポインタ変数,返す型)</code>のように記述します。</p>
+<pre><code class="language-wapl">fn get_at(&amp;:i64 arr,&amp;mut:i64 i):i64{
+    =(*_(i), -(*_(i),1));
+    return [](arr, *_(i));
+
+}
+fn main():i32{
+    #=(sz,sizeof(i64),i64);
+    #=(array, malloc(*(sz,5),i64), *:i64);
+    =(array, Array(3,1,4,1,5));
+    #=(indx, 2, i64);
+
+    println( format("[](array,-(2,1)) = %d\nindex = %d",get_at( p&amp;(array), &amp;_(indx) ), indx ) );
+
+    free(pmove(array));
+    
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">[](array,-(2,1)) = 1
+index = 1
+</code></pre>
+<p>このように<code>&amp;:i64</code>で渡すことで所有権を譲渡せずに参照を渡すことができます。また、<code>indx</code>は参照渡しで<code>get_at</code>関数に渡されているため、そこでの値の変化が<code>main</code>関数にも反映されています。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="構造体"><a class="header" href="#構造体">構造体</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="付録"><a class="header" href="#付録">付録</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -3420,6 +3550,9 @@ pub struct ScopeOwner {
 <pre><code class="language-bash">$ sudo ./llvm.sh 21
 </code></pre>
 <pre><code class="language-bash">$ clang-21 --version
+</code></pre>
+<p>この方法でインストールした場合プロジェクト内のwapl.tomlのclangの欄を<code>"clang-21"</code>に書き変えるか以下のようにして<code>clang</code>を<code>clang-21</code>になるようにしておく必要があるかもしれません</p>
+<pre><code class="language-bash">sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
 </code></pre>
 
                     </main>
