@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-be0a98ea.js";
+            window.path_to_searchindex_js = "searchindex-7f94791c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a3c325ba.js"></script>
+        <script src="toc-8d4f946e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -835,6 +835,186 @@ index = 1
 <p>このように<code>&amp;:i64</code>で渡すことで所有権を譲渡せずに参照を渡すことができます。また、<code>indx</code>は参照渡しで<code>get_at</code>関数に渡されているため、そこでの値の変化が<code>main</code>関数にも反映されています。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="構造体"><a class="header" href="#構造体">構造体</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="構造体を定義する"><a class="header" href="#構造体を定義する">構造体を定義する</a></h1>
+<p><strong>構造体を定義</strong></p>
+<p>構造体の定義は<code>struct</code>キーワードのあとに構造体の名前を付け、波かっこの中にフィールドを型名、名前の順で書いていきます。以下に複素数を表現する構造体の例を示します。</p>
+<pre><code class="language-wapl">struct Complex{
+    f64 re,
+    f64 im
+}
+</code></pre>
+<p><code>re</code>には実部、<code>im</code>には虚部を格納します。</p>
+<p><strong>インスタンスを生成</strong></p>
+<p>定義した構造体名は型名としても使えて、その型名で変数を宣言することで実体を持ったインスタンスを生成します。また、これだけではフィールドに値が入ってないのでそれぞれ値を代入していく必要があります。</p>
+<pre><code class="language-wapl">struct Complex{
+    f64 re,
+    f64 im
+}
+fn main():i32{
+    #=(c, _, Complex);
+    =(.(c,re),1.0);
+    =(.(c,im),2.0);
+    println(format("c = %g + %gi",.(c,re),.(c,im)));
+    return 0s
+}
+</code></pre>
+<pre><code>c = 1 + 2i
+</code></pre>
+<p>フィールドへのアクセスは<code>.(インスタンス,フィールド名)</code>でできます。</p>
+<p>しかし、これを毎回やっていてはコードが長くなってしまいます。そこで、フィールドの値を引数で渡して一括で代入してくれる関数を作ると便利です。</p>
+<pre><code class="language-wapl">fn Complex_new(f64 re,f64 im):Complex{
+    #=(cplx, _, Complex);
+    =(.(cplx,re), re);
+    =(.(cplx,im), im);
+    return cplx;
+}
+</code></pre>
+<p>このような関数を用意しておくと</p>
+<pre><code class="language-wapl">#=(c, Complex_new(1.0,2.0), Complex);
+</code></pre>
+<p>とするだけで先ほどのように<code>Complex</code>のインスタンスを簡単に生成できます。</p>
+<p><strong>フィールドにアクセス</strong></p>
+<p>先ほども述べたように構造体のフィールドへのアクセスは<code>.(インスタンス,フィールド名)</code>でできますが、構造体はポインタで扱うことも多いので、インスタンスのポインタを使ってアクセスする方法が二つあります:<code>_&gt;(インスタンスのポインタ,フィールド名)</code>と<code>-&gt;(インスタンスのポインタ,フィールド名)</code>です。<code>_&gt;</code>はインスタンスのポインタからフィールドの値を返し、<code>-&gt;</code>はインスタンスのポインタからフィールドのポインタを返します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>アクセス方法</th><th>第一引数</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td>.</td><td>インスタンスの値</td><td>フィールドの値</td></tr>
+<tr><td>_&gt;</td><td>インスタンスのポインタ</td><td>フィールドの値</td></tr>
+<tr><td>-&gt;</td><td>インスタンスのポインタ</td><td>フィールドのポインタ</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>構造体での所有権</strong></p>
+<p>フィールドが所有権を持つ構造体を作ることができますが、そのような構造体は所有権チェックを受けらないためメモリ安全が担保されません。そのため解放する関数を構造体に対して定義して解放忘れがないように注意してください。また、ヒープ領域とスタック領域のどちらでも受け入れる場合は型を<code>&amp;mut:T</code>または<code>ptr:T</code>にしてヒープ領域の場合は別で所有者を設けてメモリの管理をすることを推奨します。</p>
+<pre><code class="language-wapl">struct Parson{
+    *:char name, // nameが所有権を持つ
+    i64 age,
+}
+fn Parson_free(ptr:Parson p){
+    free(pmove(_&gt;(p,name))); // nameを解放
+}
+fn Parson_new(*:char name, i64 age):Parson{
+    #=(parson, _, Parson);
+    =(.(parson,name),pmove(name)); // 所有権が構造体のフィールドに譲渡される
+    =(.(parson,age),age);
+    return parson;
+}
+fn main():i32{
+    #=(name,malloc(6,char),*:char);
+    memcpy(name,"Kazane",6); // ヒープ領域に文字列をコピー
+    #=(p,Parson_new(pmove(name),19),Parson);
+    println(format("name: %s\nage %d",.(p,name),.(p,age)));
+    Parson_free(&amp;_(p)); // 解放
+    return 0s;
+}
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="複数ファイルで開発"><a class="header" href="#複数ファイルで開発">複数ファイルで開発</a></h1>
+<p>1つのファイルだけでプロジェクトを作ると、プロジェクトの規模が大きくなってくると一つのファイルが巨大になってしまい、コード量が増えて全体を把握しづらくなります。また、ある機能の修正が他の機能に影響してしまったり、複数人で分担しにくいという問題が起きます。そこでWapLではファイルを分割してコンパイル時につなげることができます。これにより、上記の問題を解決できるだけでなく、コードの再利用性も高くなります。また、WapLの提供している標準ライブラリを使うにもこの機能を使います。この章では複数ファイルで開発をする方法と標準ライブラリの使い方を説明します。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ファイルをつなげる"><a class="header" href="#ファイルをつなげる">ファイルをつなげる</a></h1>
+<p><strong>他ファイルの関数や構造体を使う</strong></p>
+<p>以下のようなファイル構成のときを例に説明します</p>
+<pre><code class="language-bash">src
+├── SayHello.wapl
+└── main.wapl
+</code></pre>
+<p><code>ファイル:SayHello.wapl</code>にある以下の関数を<code>ファイル:main.wapl</code>で呼びたいです。</p>
+<pre><code class="language-wapl">fn Hello(){
+    println("HELLO!!!!!");
+}
+</code></pre>
+<p>こんな時には<code>use</code>キーワードを使ってつなげたいファイルのパスをしていします。</p>
+<p><code>ファイル:main.wapl</code></p>
+<pre><code class="language-wapl">use "./src/SayHello.wapl"
+fn main():i32{
+    Hello();
+    return 0s;
+}
+</code></pre>
+<p>パスは文字列リテラルと同じでダブルクォーテーションで囲んで書きます。</p>
+<p>同様に構造体も持ち込むことができます。</p>
+<p>以下のようなファイル構成のときを例に説明します。</p>
+<pre><code class="language-bash">src
+├── Complex.wapl
+└── main.wapl
+</code></pre>
+<p><code>ファイル:Complex.wapl</code></p>
+<pre><code class="language-wapl">struct Complex{
+    f64 re,
+    f64 im
+}
+fn Complex_new(f64 re,f64 im):Complex{
+    #=(cplx, _, Complex);
+    =(.(cplx,re), re);
+    =(.(cplx,im), im);
+    return cplx;
+}
+fn Complex_show(Complex c){
+    println(format("c = %g + %gi",.(c,re),.(c,im)));
+}
+</code></pre>
+<p>この複素数の構造体を<code>ファイル:main.wapl</code>で使います。</p>
+<pre><code class="language-wapl">use "./src/Complex.wapl"
+fn main():i32{
+    #=(c, Complex_new(1.0,2.0), Complex);
+    Complex_show(c);
+    return 0s;
+}
+</code></pre>
+<p>このようにして複数ファイルで開発をすることができます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="標準ライブラリを使う"><a class="header" href="#標準ライブラリを使う">標準ライブラリを使う</a></h1>
+<p><code>wapl-cli new</code>を使ってプロジェクトを作った場合はすでに<code>std</code>というディレクトリが作られてその中に標準ライブラリのファイルが入っていると思います。もしそうでなければ<code>wapl-cli std_load</code>でデフォルトに設定されているwaplcのバージョンに合わせた標準ライブラリを取得することもできます。</p>
+<pre><code class="language-bash">$ wapl-cli std_laod
+</code></pre>
+<p>標準ライブラリも<a href="#ファイルをつなげる">ファイルをつなげる</a>で説明した方法で使うことができます。例えば標準ライブラリにある<code>time.wapl</code>を使いたいときは以下のように<code>use "./std/time.wapl"</code>とすることで使えます。</p>
+<pre><code class="language-wapl">use "./std/time.wapl"
+fn main():i32{
+    #=(start, Time_now(),timespec);
+    
+    #=(i,0,i64);
+    loopif:(&lt;(i,10000000)){
+        print("WapL");
+        =(i,+(i,1));
+    }
+    println("");
+
+    #=(end, Time_now(), timespec);
+
+    println(format("%g秒経過",Time_delta(start,end)));
+
+    return 0s;
+}
+</code></pre>
+<p>また、すべての標準ライブラリを一括でつなげたいときは<code>use "./std/allstd.wapl"</code>でできます。</p>
+<p><strong>標準ライブラリの紹介</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>名前</th><th>機能</th></tr>
+</thead>
+<tbody>
+<tr><td>allstd</td><td>すべての標準ライブラリを一括でuse</td></tr>
+<tr><td>assign_and_cal</td><td>インクリメント<code>++</code>や<code>+=</code>といった計算と代入を同時に行う関数を提供</td></tr>
+<tr><td>HelloWorld</td><td>Hello World!と表示するだけの関数がある</td></tr>
+<tr><td>iterator</td><td>イテレータ(0.1.9現在まだ作り途中)</td></tr>
+<tr><td>longinput</td><td>入力を配列で受け取るための関数がある</td></tr>
+<tr><td>math</td><td>絶対値を返す関数や<code>math_PI</code>や<code>math_E</code>で数学の定数を返す</td></tr>
+<tr><td>sort</td><td>ソートをする関数のコレクション</td></tr>
+<tr><td>String</td><td>String型(文字列のポインタ,長さ,容量からなる)の構造体とそれに関連する関数がある</td></tr>
+<tr><td>time</td><td>時間の取得や停止</td></tr>
+<tr><td>utility</td><td>いろいろ</td></tr>
+<tr><td>VecT</td><td>VecT型(任意型の配列,長さ,容量,型のバイト数からなる)任意型の配列の構造体とそれに関連する関数がある</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>ライブラリを作って公開する</strong></p>
+<p><a href="https://github.com/kazanefu/WapL_Library">https://github.com/kazanefu/WapL_Library</a>にライブラリのフォルダを追加してライブラリ名でブランチを切ってpushしてプルリクをください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="付録"><a class="header" href="#付録">付録</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>

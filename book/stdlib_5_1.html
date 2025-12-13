@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>一般的なプログラミングの概念 - The WapL Programming Language 日本語版</title>
+        <title>標準ライブラリを使う - The WapL Programming Language 日本語版</title>
 
 
         <!-- Custom HTML head -->
@@ -176,19 +176,63 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="一般的なプログラミングの概念"><a class="header" href="#一般的なプログラミングの概念">一般的なプログラミングの概念</a></h1>
-<p>この章では、ほとんどの言語で見られる概念の説明と、WapLにおけるそれらの動作について見ていきます。概念は多くの言語で同じものを共有しますが、記述方法や細かい挙動は異なるものも多いです。これらの概念のWapLにおける仕様の説明をします。</p>
-<p>具体的には、変数、基本的な型、関数、コメント、制御フローについて説明します。</p>
+                        <h1 id="標準ライブラリを使う"><a class="header" href="#標準ライブラリを使う">標準ライブラリを使う</a></h1>
+<p><code>wapl-cli new</code>を使ってプロジェクトを作った場合はすでに<code>std</code>というディレクトリが作られてその中に標準ライブラリのファイルが入っていると思います。もしそうでなければ<code>wapl-cli std_load</code>でデフォルトに設定されているwaplcのバージョンに合わせた標準ライブラリを取得することもできます。</p>
+<pre><code class="language-bash">$ wapl-cli std_laod
+</code></pre>
+<p>標準ライブラリも<a href="./mulfile_5_1.html">ファイルをつなげる</a>で説明した方法で使うことができます。例えば標準ライブラリにある<code>time.wapl</code>を使いたいときは以下のように<code>use "./std/time.wapl"</code>とすることで使えます。</p>
+<pre><code class="language-wapl">use "./std/time.wapl"
+fn main():i32{
+    #=(start, Time_now(),timespec);
+    
+    #=(i,0,i64);
+    loopif:(&lt;(i,10000000)){
+        print("WapL");
+        =(i,+(i,1));
+    }
+    println("");
+
+    #=(end, Time_now(), timespec);
+
+    println(format("%g秒経過",Time_delta(start,end)));
+
+    return 0s;
+}
+</code></pre>
+<p>また、すべての標準ライブラリを一括でつなげたいときは<code>use "./std/allstd.wapl"</code>でできます。</p>
+<p><strong>標準ライブラリの紹介</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>名前</th><th>機能</th></tr>
+</thead>
+<tbody>
+<tr><td>allstd</td><td>すべての標準ライブラリを一括でuse</td></tr>
+<tr><td>assign_and_cal</td><td>インクリメント<code>++</code>や<code>+=</code>といった計算と代入を同時に行う関数を提供</td></tr>
+<tr><td>HelloWorld</td><td>Hello World!と表示するだけの関数がある</td></tr>
+<tr><td>iterator</td><td>イテレータ(0.1.9現在まだ作り途中)</td></tr>
+<tr><td>longinput</td><td>入力を配列で受け取るための関数がある</td></tr>
+<tr><td>math</td><td>絶対値を返す関数や<code>math_PI</code>や<code>math_E</code>で数学の定数を返す</td></tr>
+<tr><td>sort</td><td>ソートをする関数のコレクション</td></tr>
+<tr><td>String</td><td>String型(文字列のポインタ,長さ,容量からなる)の構造体とそれに関連する関数がある</td></tr>
+<tr><td>time</td><td>時間の取得や停止</td></tr>
+<tr><td>utility</td><td>いろいろ</td></tr>
+<tr><td>VecT</td><td>VecT型(任意型の配列,長さ,容量,型のバイト数からなる)任意型の配列の構造体とそれに関連する関数がある</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>ライブラリを作って公開する</strong></p>
+<p><a href="https://github.com/kazanefu/WapL_Library">https://github.com/kazanefu/WapL_Library</a>にライブラリのフォルダを追加してライブラリ名でブランチを切ってpushしてプルリクをください。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="waplcli_1_3.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="mulfile_5_1.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="variable_2_0.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="huroku.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -198,11 +242,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="waplcli_1_3.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="mulfile_5_1.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="variable_2_0.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="huroku.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

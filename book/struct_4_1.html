@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>一般的なプログラミングの概念 - The WapL Programming Language 日本語版</title>
+        <title>構造体 - The WapL Programming Language 日本語版</title>
 
 
         <!-- Custom HTML head -->
@@ -176,19 +176,92 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="一般的なプログラミングの概念"><a class="header" href="#一般的なプログラミングの概念">一般的なプログラミングの概念</a></h1>
-<p>この章では、ほとんどの言語で見られる概念の説明と、WapLにおけるそれらの動作について見ていきます。概念は多くの言語で同じものを共有しますが、記述方法や細かい挙動は異なるものも多いです。これらの概念のWapLにおける仕様の説明をします。</p>
-<p>具体的には、変数、基本的な型、関数、コメント、制御フローについて説明します。</p>
+                        <h1 id="構造体を定義する"><a class="header" href="#構造体を定義する">構造体を定義する</a></h1>
+<p><strong>構造体を定義</strong></p>
+<p>構造体の定義は<code>struct</code>キーワードのあとに構造体の名前を付け、波かっこの中にフィールドを型名、名前の順で書いていきます。以下に複素数を表現する構造体の例を示します。</p>
+<pre><code class="language-wapl">struct Complex{
+    f64 re,
+    f64 im
+}
+</code></pre>
+<p><code>re</code>には実部、<code>im</code>には虚部を格納します。</p>
+<p><strong>インスタンスを生成</strong></p>
+<p>定義した構造体名は型名としても使えて、その型名で変数を宣言することで実体を持ったインスタンスを生成します。また、これだけではフィールドに値が入ってないのでそれぞれ値を代入していく必要があります。</p>
+<pre><code class="language-wapl">struct Complex{
+    f64 re,
+    f64 im
+}
+fn main():i32{
+    #=(c, _, Complex);
+    =(.(c,re),1.0);
+    =(.(c,im),2.0);
+    println(format("c = %g + %gi",.(c,re),.(c,im)));
+    return 0s
+}
+</code></pre>
+<pre><code>c = 1 + 2i
+</code></pre>
+<p>フィールドへのアクセスは<code>.(インスタンス,フィールド名)</code>でできます。</p>
+<p>しかし、これを毎回やっていてはコードが長くなってしまいます。そこで、フィールドの値を引数で渡して一括で代入してくれる関数を作ると便利です。</p>
+<pre><code class="language-wapl">fn Complex_new(f64 re,f64 im):Complex{
+    #=(cplx, _, Complex);
+    =(.(cplx,re), re);
+    =(.(cplx,im), im);
+    return cplx;
+}
+</code></pre>
+<p>このような関数を用意しておくと</p>
+<pre><code class="language-wapl">#=(c, Complex_new(1.0,2.0), Complex);
+</code></pre>
+<p>とするだけで先ほどのように<code>Complex</code>のインスタンスを簡単に生成できます。</p>
+<p><strong>フィールドにアクセス</strong></p>
+<p>先ほども述べたように構造体のフィールドへのアクセスは<code>.(インスタンス,フィールド名)</code>でできますが、構造体はポインタで扱うことも多いので、インスタンスのポインタを使ってアクセスする方法が二つあります:<code>_&gt;(インスタンスのポインタ,フィールド名)</code>と<code>-&gt;(インスタンスのポインタ,フィールド名)</code>です。<code>_&gt;</code>はインスタンスのポインタからフィールドの値を返し、<code>-&gt;</code>はインスタンスのポインタからフィールドのポインタを返します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>アクセス方法</th><th>第一引数</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td>.</td><td>インスタンスの値</td><td>フィールドの値</td></tr>
+<tr><td>_&gt;</td><td>インスタンスのポインタ</td><td>フィールドの値</td></tr>
+<tr><td>-&gt;</td><td>インスタンスのポインタ</td><td>フィールドのポインタ</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>構造体での所有権</strong></p>
+<p>フィールドが所有権を持つ構造体を作ることができますが、そのような構造体は所有権チェックを受けらないためメモリ安全が担保されません。そのため解放する関数を構造体に対して定義して解放忘れがないように注意してください。また、ヒープ領域とスタック領域のどちらでも受け入れる場合は型を<code>&amp;mut:T</code>または<code>ptr:T</code>にしてヒープ領域の場合は別で所有者を設けてメモリの管理をすることを推奨します。</p>
+<pre><code class="language-wapl">struct Parson{
+    *:char name, // nameが所有権を持つ
+    i64 age,
+}
+fn Parson_free(ptr:Parson p){
+    free(pmove(_&gt;(p,name))); // nameを解放
+}
+fn Parson_new(*:char name, i64 age):Parson{
+    #=(parson, _, Parson);
+    =(.(parson,name),pmove(name)); // 所有権が構造体のフィールドに譲渡される
+    =(.(parson,age),age);
+    return parson;
+}
+fn main():i32{
+    #=(name,malloc(6,char),*:char);
+    memcpy(name,"Kazane",6); // ヒープ領域に文字列をコピー
+    #=(p,Parson_new(pmove(name),19),Parson);
+    println(format("name: %s\nage %d",.(p,name),.(p,age)));
+    Parson_free(&amp;_(p)); // 解放
+    return 0s;
+}
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="waplcli_1_3.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="chapter_4.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="variable_2_0.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="chapter_5.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -198,11 +271,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="waplcli_1_3.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="chapter_4.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="variable_2_0.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="chapter_5.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
