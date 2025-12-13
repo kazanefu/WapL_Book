@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Hello, World! - The WapL Programming Language 日本語版</title>
+        <title>コンパイラ組み込み関数 - The WapL Programming Language 日本語版</title>
 
 
         <!-- Custom HTML head -->
@@ -176,65 +176,33 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="hello-world"><a class="header" href="#hello-world">Hello, World!</a></h1>
-<p>伝統に従って<code>Hello, World</code>を出力する簡単なコードを書いてみましょう</p>
-<h2 id="プロジェクトのディレクトリを作成する"><a class="header" href="#プロジェクトのディレクトリを作成する">プロジェクトのディレクトリを作成する</a></h2>
-<p>まずはWapLコードを格納するディレクトリを作るところから始めましょう。WapLではどこにプロジェクトを作成するかはたいした問題ではありませんが、この本ではホームディレクトリに<strong>projects</strong>ディレクトリを作成してプロジェクトをすべてそこに保管することを推奨します。</p>
-<p><strong>projects</strong>ディレクトリを作成して,その中に<strong>hello_world</strong>ディレクトリを作成してこれを「Hello, World!」のプロジェクトのディレクトリとします。</p>
-<pre><code class="language-bash">$ mkdir ~/projects
-$ cd ~/projects
-$ mkdir hello_world
-$ cd hello_world
-</code></pre>
-<h2 id="waplプログラムを書いて実行する"><a class="header" href="#waplプログラムを書いて実行する">WapLプログラムを書いて実行する</a></h2>
-<p>次にソースファイルを作り、main.waplというファイルにしてください。WapLのファイルは常に.waplという拡張子で終わります。</p>
-<p>作成したら、main.waplファイルを開き次のコードを入力してください。<br>
-ファイル名:main.wapl</p>
-<pre><code class="language-wapl">fn main():i32{
-    println("Hello, World!");
-    return 0s;
-}
-</code></pre>
-<p>main.waplファイルを保存した<strong>hello_world</strong>ディレクトリにいることを確認して以下のコマンドを打ってファイルをコンパイルして実行してください:</p>
-<pre><code class="language-bash">$ waplc -i main.wapl -o main
-$ ./main
-Hello, World!
-</code></pre>
-<p><code>Hello, World!</code>という文字列が出力できたはずです。この出力が見れない場合は<a href="./install_1_1.html">「WapLを導入」</a>に戻ってもう一度手順に漏れや間違いがなかったかを確認してみてください。</p>
-<p><code>Hello, World!</code>が確かに出力されたら、おめでとうございます！これであなたもWapLプログラマーです！ようこそ！</p>
-<h2 id="waplプログラムの解説"><a class="header" href="#waplプログラムの解説">WapLプログラムの解説</a></h2>
-<p>この「Hello, World!」プログラムを詳しく再確認しましょう。こちらが一つ目の要素です:</p>
-<pre><code class="language-wapl">fn main():i32 {
-
-}
-</code></pre>
-<p>これらの行では<code>main</code>という名前の関数を定義しています。WapLでは<code>main</code>は特別な関数で実行可能なWapLプログラムで走る最初のコード、すなわちエントリーポイントになります。ただし、多くの他の言語とは違い、<code>main</code>関数が存在しない場合でもエントリーポイントを任意の関数に指定することができます。引数がある場合は<code>()</code>の内部に入ります。その後に続く<code>:i32</code>は戻り値の型を指定しています。WapLの<code>main</code>関数は常に<code>i32</code>という32bit整数の型の戻り値です。</p>
-<p>関数の本体は<code>{}</code>に囲まれています。</p>
-<p><code>main</code>関数の本体は、こんなコードになっています:</p>
-<pre><code class="language-wapl">    println("Hello, World!");
-    return 0s;
-</code></pre>
-<p>WapLでは複数行にわたる括弧の中身はインデントをするのが基本です。また,式の終わりは<code>;</code>で終わるのが原則です。これらは守らなくても正常に動作はしますが、可読性やコードの意味を明示的に示すために守ることを推奨します。</p>
-<p><code>println</code>は与えられた文字列を標準出力に出力する関数です。ここでは引数に<code>"Hello, World!"</code>を渡しています。</p>
-<p><code>return</code>は戻り値を返しています。<code>return</code>はほとんどのコードを関数呼び出し形式で記述するWapLの中では珍しく<code>return 0s</code>のように半角スペースで区切って戻り値を書きます。ここでは特に意味はないですが<code>0s</code>を返しています。<code>0s</code>はi32型の<code>0</code>のリテラルですが詳しくは第2章で説明します。</p>
-<h2 id="コンパイルと実行は別ステップ"><a class="header" href="#コンパイルと実行は別ステップ">コンパイルと実行は別ステップ</a></h2>
-<p>先ほど打った以下のコマンドの意味について説明します。</p>
-<pre><code class="language-bash">$ waplc -i main.wapl -o main
-$ ./main
-</code></pre>
-<p>WapLコンパイラ版では<code>waplc</code>に<code>-i</code>でソースファイルを、<code>-o</code>で出力する実行ファイルを指定して実行可能ファイルを出力します。そして、二つ目のコマンドで一つ目のコマンドで出力した実行可能ファイルを実行しています。</p>
-<p>PythonやRuby、JavaScriptなどの動的言語に造詣が深いなら、プログラムのコンパイルと実行を個別の手順で行うことに慣れていない可能性があります。WapLコンパイラ版は<strong>AOTコンパイル</strong>(ahead-of-time;<code>訳注</code>:予め)言語です。つまり、実行可能ファイルを誰かにあげ、受け取った人がWapLをインストールしていなくても実行できるわけです。.py、.rb、.jsファイルをあげたら、それぞれPython、Ruby、JavaScriptの処理系がインストールされている必要があります。</p>
-<p>簡単なプロジェクトなら<code>waplc</code>でコンパイルするだけでも十分ですが、wapl-cliを使うことでもっと簡単にプロジェクトの作成、ビルド、標準ライブラリなどをできるようになります。次は、wapl-cliについて紹介します。</p>
+                        <h1 id="組み込み関数一覧"><a class="header" href="#組み込み関数一覧">組み込み関数一覧</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>関数名</th><th>引数</th><th>戻り値</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td>&amp;_</td><td>参照を作れるものなら何でも</td><td>ptr:T</td><td>参照を作る</td></tr>
+<tr><td>*_</td><td>ポインタ,(読み取る型)</td><td>そのポインタの指す型または指定した型</td><td>参照外し</td></tr>
+<tr><td>sqrt</td><td>f64</td><td>f64</td><td>平方根</td></tr>
+<tr><td>cos</td><td>f64</td><td>f64</td><td>余弦</td></tr>
+<tr><td>sin</td><td>f64</td><td>f64</td><td>正弦</td></tr>
+<tr><td>pow</td><td>f64,f64</td><td>f64</td><td>第一引数の第二引数乗</td></tr>
+<tr><td>exp</td><td>f64</td><td>f64</td><td>ネイピア数の引数乗</td></tr>
+</tbody>
+</table>
+</div>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="install_1_1.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="linkingc_6_1.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="waplcli_1_3.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="huroku.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -244,11 +212,11 @@ $ ./main
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="install_1_1.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="linkingc_6_1.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="waplcli_1_3.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="huroku.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

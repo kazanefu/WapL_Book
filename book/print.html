@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f94791c.js";
+            window.path_to_searchindex_js = "searchindex-b2448918.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8d4f946e.js"></script>
+        <script src="toc-52f92f80.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -1015,6 +1015,98 @@ fn main():i32{
 </div>
 <p><strong>ライブラリを作って公開する</strong></p>
 <p><a href="https://github.com/kazanefu/WapL_Library">https://github.com/kazanefu/WapL_Library</a>にライブラリのフォルダを追加してライブラリ名でブランチを切ってpushしてプルリクをください。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="その他"><a class="header" href="#その他">その他</a></h1>
+<ul>
+<li>C言語の標準ライブラリとリンク</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="c言語標準ライブラリとリンク"><a class="header" href="#c言語標準ライブラリとリンク">C言語標準ライブラリとリンク</a></h1>
+<p>WapLではC言語の標準ライブラリとリンクして関数や構造体を使うことができます。</p>
+<p><strong>関数のリンク</strong></p>
+<p>関数をリンクさせるには関数名とシグネチャを一致させて<code>declare</code>で宣言するだけでよいです。</p>
+<pre><code class="language-wapl">declare printf(ptr:char,...):i32
+
+fn main():i32{
+    printf("Hello, %s\n","WapL");
+    return 0s;
+}
+</code></pre>
+<p>これだけでC言語の標準ライブラリの<code>printf</code>が使えます。</p>
+<p><strong>構造体のリンク</strong></p>
+<p>こっちは関数よりももっと簡単で単に同じ名前で中のフィールドの型も一致させるだけでC言語の構造体と同じものとして扱うことができます。これはWapL標準ライブラリの<code>time.wapl</code>でも使っているのでそれを例に見てみましょう。</p>
+<pre><code class="language-wapl">struct timespec {
+    i64 tv_sec,
+    i64 tv_nsec,
+}
+
+declare timespec_get(ptr:timespec, i32):i32;
+declare nanosleep(ptr:timespec, ptr):i32;
+
+fn Time_get(&amp;mut:timespec ts):i32{
+    #=(i,1,i64);
+    return timespec_get(ts, *_(&amp;_(i),i32));
+}
+fn Time_sleep(&amp;mut:timespec ts):i32{
+    #=(null,_,ptr);
+    return nanosleep(ts, null);
+}
+fn Time_new():timespec{
+    #=(time,_,timespec);
+    =(.(time,tv_sec),0);
+    =(.(time,tv_nsec),0);
+    return time;
+}
+fn Time_delta(timespec start,timespec end):f64{    
+    #=(sec_diff, -(.(end,tv_sec), .(start,tv_sec)), i64);
+    #=(nsec_diff, -(.(end,tv_nsec), .(start,tv_nsec)), i64);
+
+    #=(elapsed, 
+        +(as_f64(sec_diff), *(as_f64(nsec_diff), 0.000000001)),
+        f64
+    );
+
+    return elapsed;
+}
+fn Time_now():timespec{
+    #=(time,_,timespec);
+    =(.(time,tv_sec),0);
+    =(.(time,tv_nsec),0);
+    #=(i,1,i64);
+    timespec_get(&amp;_(time), *_(&amp;_(i),i32));
+    return time;
+
+}
+fn Time_as_f64(timespec ts):f64{
+    #=(sec_diff, .(ts,tv_sec), i64);
+    #=(nsec_diff,.(ts,tv_nsec), i64);
+
+    #=(f_num, 
+        +(as_f64(sec_diff), *(as_f64(nsec_diff), 0.000000001)),
+        f64
+    );
+    return f_num;
+}
+</code></pre>
+<p>ここではC言語の<code>timespec</code>という構造体を同じ形式でWapLでも定義することでC言語の関数の<code>timespec_get</code>や<code>nanosleep</code>などへの引数として渡すことができています。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="組み込み関数一覧"><a class="header" href="#組み込み関数一覧">組み込み関数一覧</a></h1>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>関数名</th><th>引数</th><th>戻り値</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td>&amp;_</td><td>参照を作れるものなら何でも</td><td>ptr:T</td><td>参照を作る</td></tr>
+<tr><td>*_</td><td>ポインタ,(読み取る型)</td><td>そのポインタの指す型または指定した型</td><td>参照外し</td></tr>
+<tr><td>sqrt</td><td>f64</td><td>f64</td><td>平方根</td></tr>
+<tr><td>cos</td><td>f64</td><td>f64</td><td>余弦</td></tr>
+<tr><td>sin</td><td>f64</td><td>f64</td><td>正弦</td></tr>
+<tr><td>pow</td><td>f64,f64</td><td>f64</td><td>第一引数の第二引数乗</td></tr>
+<tr><td>exp</td><td>f64</td><td>f64</td><td>ネイピア数の引数乗</td></tr>
+</tbody>
+</table>
+</div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="付録"><a class="header" href="#付録">付録</a></h1>
 <div style="break-before: page; page-break-before: always;"></div>
