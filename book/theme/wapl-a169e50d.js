@@ -45,7 +45,7 @@ hljs.registerLanguage("wapl", function(hljs) {
             // --------------------------------
             {
                 className: "keyword",
-                begin: /\b(fn|if|loopif|point|warpto|warptoif|return|use|struct|declare)\b/,
+                begin: /\b(fn|if|loopif|point|warpto|warptoif|return|use|struct|declare|export|elif|else)\b/,
             },
 
             // --------------------------------
@@ -53,7 +53,7 @@ hljs.registerLanguage("wapl", function(hljs) {
             // --------------------------------
             {
                 className: "built_in",
-                begin: /(#=|=|&_|\*_ |pmove|p&|p&mut)/,
+                begin: /(#=|=|&_|\*_ |pmove|p&|p&mut|true|false)/,
             },
 
             // --------------------------------
@@ -93,7 +93,7 @@ hljs.registerLanguage("wapl", function(hljs) {
             // --------------------------------
             {
                 className: "type",
-                begin: /\b(i32|i64|f32|f64|bool|char|String|T)\b/
+                begin: /\b(i32|isize|i64|f32|f64|bool|char|String|T)\b/
             },
 
             // --------------------------------

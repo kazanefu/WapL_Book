@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>関数 - The WapL Programming Language 日本語版</title>
+        <title>WapLでWebAssemblyにビルドする - The WapL Programming Language 日本語版</title>
 
 
         <!-- Custom HTML head -->
@@ -176,88 +176,209 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="関数"><a class="header" href="#関数">関数</a></h1>
-<p>WapLでは1.2で述べたように基本的に<code>main</code>関数がエントリーポイントになります。しかし、<code>main</code>以外の関数をエントリーポイントのようにすることも可能です。</p>
-<pre><code class="language-wapl">fn start(){
-    println("Hello, Start!");
-}
-start();
+                        <h1 id="waplでwebassemblyにビルドする"><a class="header" href="#waplでwebassemblyにビルドする">WapLでWebAssemblyにビルドする</a></h1>
+<h2 id="環境構築"><a class="header" href="#環境構築">環境構築</a></h2>
+<p>waplc_v0.2以降ではWebAssembly(以下wasm)向けビルドに対応しています。またwapl-cliが古いとwapl-cliでのwasm向けビルドに対応していないことがあるのでその場合は<a href="./install_1_1.html">第1章のWapLを導入</a>にある最初のコマンドで更新してその後<code>waplup update</code>で<code>waplc</code>の更新をしてください。</p>
+<p>まずはwasm向けにビルドするためにまずはwasmに対応したclangや.wasmから.watファイルを作るツールをインストールします、すでにこれらがインストールされている場合はwapl.tomlファイルに設定を書くところまで飛ばして大丈夫です。</p>
+<p>wgetがなければインストール</p>
+<pre><code class="language-bash">$ sudo apt update
 </code></pre>
-<p>これは内部的には一番最後の<code>start()</code>の呼び出しが<code>_TOPLEVEL_</code>という見えない関数に入れられて、<code>_TOPLEVEL_</code>が最初に呼ばれて関数の外に書いてある処理を順に行うので<code>start</code>関数が呼ばれています。</p>
-<p>WapLでは関数は必ず関数の呼び出しより上で関数の定義がされている必要があります。</p>
-<pre><code class="language-wapl">fn main():i32{
-    another();
+<pre><code class="language-bash">$ sudo apt install -y wget gnupg
+</code></pre>
+<p>wasi-sdkをインストール(バージョンはLLVM-21に対応しているもの)</p>
+<pre><code class="language-bash">$ wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-29/wasi-sdk-29.0-x86_64-linux.tar.gz
+</code></pre>
+<pre><code class="language-bash">$ tar xf wasi-sdk-29.0-x86_64-linux.tar.gz
+</code></pre>
+<p>wasmの実行のためのランタイムをインストール</p>
+<pre><code class="language-bash">$ wget https://github.com/bytecodealliance/wasmtime/releases/download/v40.0.0/wasmtime-v40.0.0-x86_64-linux.tar.xz -O wasmtime.tar.xz
+</code></pre>
+<pre><code class="language-bash">$ tar -xf wasmtime.tar.xz 
+</code></pre>
+<p>.watファイルを生成するためのツールをインストール</p>
+<pre><code class="language-bash">$ sudo apt install wabt
+</code></pre>
+<p>ではここからwapl.tomlに設定を書きます。ここの例は上記のインストール方法で環境を整えた場合の設定です</p>
+<pre><code class="language-toml">[wasm]
+input = "src/main.wapl"
+output = "target/プロジェクト名.wasm"
+opt = "O3"
+clang = "$HOME/wasi-sdk-29.0-x86_64-linux/bin/clang"
+bitsize = "32"
+sysroot = "$HOME/wasi-sdk-29.0-x86_64-linux/share/wasi-sysroot"
+wasm2wat = "wasm2wat"
+wat = "src/プロジェクト名.wat"
+wasmruntime = "$HOME/wasmtime-v40.0.0-x86_64-linux/wasmtime"
+memory-size = "655360"
+</code></pre>
+<p>それぞれの項目について説明します。</p>
+<p><code>input</code>,<code>output</code>,<code>opt</code>,<code>clang</code>,<code>bitsize</code>、に関しては<code>[build]</code>のときと同じです。clangのところはちゃんとwasmに対応したものに切り替えておきましょう。<code>sysroot</code>にはwasi-sdkのshare/wasi-sysrootのパス、<code>wasm2wat</code>にはwasm2watのパス、<code>wat</code>は生成される.watファイルの名前、<code>wasmruntime</code>はwasmtimeのパス、<code>memory-size</code>にはwasmでのヒープmemoryのサイズです。</p>
+<p>ここまで設定できたら</p>
+<pre><code class="language-bash">$ wapl-cli wasm
+</code></pre>
+<p>でビルド</p>
+<pre><code class="language-bash">$ wapl-cli wasm_run
+</code></pre>
+<p>でビルド&amp;実行</p>
+<pre><code class="language-bash">$ wapl-cli wasm_browser
+</code></pre>
+<p>でエントリーポイントやlibc無しでビルド</p>
+<p>のようにしてビルドすることができます。
+<code>wapl-cli wasm</code>や<code>wapl-cli wasm_run</code>でビルドするときはエントリーポイントを作るのであれば<code>__main_void():i32</code>または<code>__main_argc_argv(i32 argc, ptr:ptr:char argv):i32</code>としてください。また<code>wapl-cli wasm_browser</code>ではlibcとリンクして使っていた<code>malloc</code>や<code>printf</code>などの関数が使えなくなりますしそれらを内部で使っているため標準ライブラリのstdにあるものも一部使えません。さらに<code>println</code>や<code>format</code>などの組み込み関数も内部ではlibcを使っているため使えなくなります。そのため代替となる関数を組み込み関数と名前衝突が起こらないように作って使ってください。</p>
+<h2 id="wasm向けビルドをして実行するまでのチュートリアル"><a class="header" href="#wasm向けビルドをして実行するまでのチュートリアル">WASM向けビルドをして実行するまでのチュートリアル</a></h2>
+<h3 id="とりあえずプロジェクトの作成からビルド実行"><a class="header" href="#とりあえずプロジェクトの作成からビルド実行">とりあえずプロジェクトの作成からビルド&amp;実行</a></h3>
+<pre><code class="language-bash">$ cd ~/projects/
+$ wapl-cli new hello_wasm
+$ cd hello_wasm
+</code></pre>
+<p>まず<code>hello_wasm</code>プロジェクトを作ります。</p>
+<p>次に自分の環境に合わせてwapl.tomlファイルに設定を書いてください。</p>
+<p>次に<code>./src/main.wapl</code>を以下のように書き変えてください。</p>
+<pre><code class="language-wapl">fn __main_void():i32{
+    println("Hello, WASM!");
     return 0s;
 }
-fn another():void{
-    println("Hello, from another function!");
-}
 </code></pre>
-<pre><code class="language-bash">Function another not found
+<p>これで</p>
+<pre><code class="language-bash">$ wapl-cli wasm_run
 </code></pre>
-<p>のようにエラーがでます。これを正しく動くようにするためには以下のような順で書く必要があります。</p>
-<pre><code class="language-wapl">fn another():void{
-    println("Hello, from another function!");
-}
-fn main():i32{
-    another();
-    return 0s;
-}
+<p>とすることでビルド&amp;実行されて</p>
+<pre><code>Hello, WASM!
 </code></pre>
-<p>または宣言だけを先に置くことでも解決できます:</p>
-<pre><code class="language-wapl">declare another():void;
-fn main():i32{
-    another();
-    return 0s;
-}
-fn another():void{
-    println("Hello, from another function!");
-}
+<p>と表示されるはずです。ポイントとしてはネイティブでは<code>main():i32</code>だったエントリーポイントが<code>__main_void():i32</code>になっていることです。</p>
+<h3 id="ブラウザで動くものを作ってみよう"><a class="header" href="#ブラウザで動くものを作ってみよう">ブラウザで動くものを作ってみよう</a></h3>
+<p>ここではWapLを<code>wapl-cli wasm_browser</code>を使ってビルドしてWapLで作った関数をTypeScriptという言語から呼んでブラウザで表示するというものを作ってみましょう。プロジェクトは先ほど作った<code>hello_wasm</code>を流用します。まず、Node.jsやTypeScriptの環境がない場合はその環境を構築します。以下の環境構築方法は筆者が行った例です。自分の環境に合わせた方法で行ってください。</p>
+<pre><code class="language-bash">$ cd ~
+$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.6/install.sh | bash
+$ export NVM_DIR="$HOME/.nvm"
+$ [ -s "$NVM_DIR/nvm.sh" ] &amp;&amp; . "$NVM_DIR/nvm.sh"
+$ nvm install --lts
+$ nvm use --lts
+$ node -v
+$ npm -v
+$ cd projects/hello_wasm/
+$ npm init -y
+$ npm install --save-dev typescript ts-node @types/node
+$ tsc --init
+$ npm install --save-dev vite
 </code></pre>
-<p>このように関数の定義は<code>fn</code>、宣言は<code>declare</code>で行います。</p>
-<p><strong>関数の引数</strong></p>
-<p>引数は関数のシグネチャの一部になる特別な変数のことで、宣言時には実引数は作らなくてよく、<code>()</code>の中に型のみを<code>,</code>区切りで列挙し、関数の宣言のときは型と変数名を書きます。</p>
-<pre><code class="language-wapl">declare another_function(i64,i64);
-fn main():i32{
-    another_function(5,3)
-    return 0s;
-}
-fn another_function(i64 x,i64 y){
-    println(format("%d,%d",x,y));
-}
+<p>これで<code>hello_wasm</code>プロジェクトでNode.jsでTypeScriptを使う環境が整いました。以降はプロジェクトで<code>npm init -y</code>と<code>tsc --init</code>さえすればいつでもNode.jsが使えるようになります。</p>
+<p>次はWapLのWASM向けライブラリ<strong>wasmpl</strong>を取得します。</p>
+<pre><code class="language-bash">$ wapl-cli get_lib wasmpl 0.1.2
 </code></pre>
-<p><strong>戻り値のある関数</strong></p>
-<p>引数を書いた括弧の後ろに戻り値がある場合は<code>:</code>で区切ってその後に戻り値の型を書きます。また<code>return</code>で戻り値を返します。:</p>
-<pre><code class="language-wapl">fn five():i64{
-    return 5;
-}
-fn main():i32{
-    println(format("five() return %d",five()));
-    return 0s;
-}
+<p>ここではwasmplのバージョン0.1.2を取得しましたが、今回使う機能はこの0.1.2時点である機能で十分なのでこのバージョンにしています。WapL標準ライブラリstdにあるものを順次wasmplにも同様のwasm版のを作っていっているのでそれらが使いたい場合はより新しいバージョンであればあるかもしれません。</p>
+<p>次に./src/main.tsを作ります。ここにWapLの関数を呼び出すTypeScriptのコードを書いていきます。</p>
+<p>次は./index.htmlを作ります。</p>
+<p>ここからコードを書いていきます。このチュートリアルではWapLで整数<code>n</code>を受け取って<code>n</code>項までのフィボナッチ数列の配列を返す関数を作って、それをTypeScriptから呼んで配列の要素すべてを画面上に表示するようなものを作ります。</p>
+<p>index.htmlには以下のように書きます。</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;WapL Fibo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;WapL Fibonacci&lt;/h1&gt;
+
+  &lt;label for="inputN"&gt;n = &lt;/label&gt;
+  &lt;input type="number" id="inputN" value="10" min="0" /&gt;
+  &lt;button id="calcBtn"&gt;計算&lt;/button&gt;
+
+  &lt;pre id="output"&gt;&lt;/pre&gt;
+
+  &lt;script type="module" src="./src/main.ts"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
 </code></pre>
-<p>ここでは<code>five</code>関数の戻り値の型は<code>i64</code>で<code>return</code>で<code>5</code>を返しています。<code>declare</code>で宣言をするときも同様です。</p>
-<pre><code class="language-wapl">declare five():i64;
-fn main():i32{
-    println(format("five() return %d",five()));
-    return 0s;
+<p>./src/main.waplには以下のようにフィボナッチ数列を作る<code>fibo(isize):*:isize</code>という形の関数を作って<code>export</code>することでTypeScript側で呼べるようにします。</p>
+<pre><code class="language-wapl">use "./lib/wasmpl/wasmpl_all.wapl" // wasmplにあるものをすべて使えるようにする
+
+fn fibo(isize n):*:isize{
+    #=(sz,sizeof(isize),isize);
+    // 配列のためのメモリをヒープ上に確保
+    // ここでは組み込み関数のmallocがlibc依存のため使えないのでwasmplにあるmalloc_wasmを使う
+    #=(arr,malloc_wasm(*(n,sz)),*:isize); 
+
+    if(&lt;=(n,1_)){
+        =(arr,Array(1_));
+        return arr;
+    }
+
+    =(arr,Array(1_,1_)); // 初項
+    #=(i,2_,isize);
+    // フィボナッチ数列を計算
+    loopif:(&lt;(i,n)){
+        =([](arr,i),+([](arr,-(i,1)),[](arr,-(i,2))));
+        =(i,+(i,1_));
+    }
+    
+    // *:isizeの型で配列を返す
+    return pmove(arr);
 }
-fn five():i64{
-    return 5;
-}
+
+export fibo; // exportして外から呼べるようにする
 </code></pre>
+<p>そしたら、TypeScriptで<code>fibo</code>を呼び出す処理を./src/main.tsに書き込みます。</p>
+<pre><code class="language-ts">async function main() {
+    const response = await fetch("/target/hello_wasm.wasm");
+    const bytes = await response.arrayBuffer();
+
+    const imports = { env: {} };
+    const wasmModule = await WebAssembly.instantiate(bytes, imports);
+    const exports = wasmModule.instance.exports as any;
+    exports.__init_wasm();
+
+    const memory = exports.memory as WebAssembly.Memory;
+
+    const inputN = document.getElementById("inputN") as HTMLInputElement;
+    const calcBtn = document.getElementById("calcBtn")!;
+    const output = document.getElementById("output")!;
+
+    calcBtn.addEventListener("click", () =&gt; {
+        const n = parseInt(inputN.value);
+        if (isNaN(n) || n &lt; 0) {
+            output.textContent = "0以上の整数を入力してください";
+            return;
+        }
+
+        // WapL fibo を呼び出す
+        const ptr = exports.fibo(n) as number;
+
+        // Int32Array を作ってコピー
+        const memView = new Int32Array(memory.buffer, ptr, n);
+        const result = Array.from(memView);
+
+        // DOM に描画
+        output.textContent = `fibo(${n}) = [${result.join(", ")}]`;
+
+        // メモリ解放
+        exports.free_wasm(ptr);
+    });
+}
+
+main();
+</code></pre>
+<p>これでコードは書き終わったのでビルドしてブラウザで開いてみましょう。</p>
+<p>WapLのビルド</p>
+<pre><code class="language-bash">$ wapl-cli wasm_browser
+</code></pre>
+<p>全体のビルド&amp;実行</p>
+<pre><code class="language-bash">$ npx vite
+</code></pre>
+<p>これで表示されるURLをブラウザで開けば以下のように表示されるはずです。</p>
+<img src="./picture/hello_wasm_fibo1.png" width="400">
+<p><code>計算</code>ボタンを押すと</p>
+<img src="./picture/hello_wasm_fibo2.png" width="400">
+<p>のように表示することができるものが作れました。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="type_2_1.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="howtoinstallclang.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="comment_2_3.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
-                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -265,13 +386,10 @@ fn five():i64{
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="type_2_1.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="howtoinstallclang.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="comment_2_3.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
-                    </a>
             </nav>
 
         </div>

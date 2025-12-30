@@ -29,7 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/wapl-38f40ac6.css">
+        <link rel="stylesheet" href="theme/wapl-7ab61934.css">
         <link rel="stylesheet" href="theme/wapl-rainbow-f888ae4b.css">
 
 
@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b2448918.js";
+            window.path_to_searchindex_js = "searchindex-c55377fe.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-52f92f80.js"></script>
+        <script src="toc-b10e67cd.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -355,6 +355,7 @@ output = "target/hello_wapl_cli"
 opt = "O3"
 clang = "clang"
 </code></pre>
+<p>waplc_v0.2.16以降に付属するwapl-cliを使った場合では<code>[wasm]</code>の欄が追加されて、さらに<code>[build]</code>/<code>[release]</code>にも<code>bitsize</code>という項目が追加されているはずです。</p>
 <h2 id="wapl-cliでビルド実行する"><a class="header" href="#wapl-cliでビルド実行する">wapl-cliでビルド/実行する</a></h2>
 <p><strong>hello_wapl_cli</strong>ディレクトリにいることを確認して以下のコマンドで<code>main.wapl</code>のコードをビルドします。</p>
 <pre><code class="language-bash">$ wapl-cli build
@@ -446,8 +447,8 @@ The value of x is: 10
 <p><strong>スカラー型</strong></p>
 <p>スカラー型は、単独の値を表します。WapLにおいては主に4つのスカラー型があります: 整数、浮動小数点数、論理値、文字、です。</p>
 <p><strong>整数型</strong></p>
-<p>WapLでは2種類の整数型があります:<code>i32</code>と<code>i64</code>です。それぞれ32-bit、64-bitの符号ありの整数です。符号ありなので例えば<code>i32</code>だと$-(2^{31})$から$2^{31}-1$まで表現できます。</p>
-<p>整数リテラルは小数点を含まないただの整数は<code>i64</code>になり、末尾に<code>s</code>をつけると<code>i32</code>になります。</p>
+<p>WapLでは2種類の整数型があります:<code>i32</code>と<code>i64</code>と<code>isize</code>です。それぞれ32-bit、64-bitの符号ありの整数、ビルド時に何ビットアーキテクチャをターゲットにしているかに合わせたサイズになる符号あり整数です。符号ありなので例えば<code>i32</code>だと$-(2^{31})$から$2^{31}-1$まで表現できます。</p>
+<p>整数リテラルは小数点を含まないただの整数は<code>i64</code>になり、末尾に<code>s</code>をつけると<code>i32</code>になります。また末尾に<code>_</code>をつけると<code>isize</code>になります</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -456,6 +457,7 @@ The value of x is: 10
 <tbody>
 <tr><td>i64</td><td>-123</td></tr>
 <tr><td>i32</td><td>42s</td></tr>
+<tr><td>isize</td><td>10_</td></tr>
 </tbody>
 </table>
 </div>
@@ -551,6 +553,82 @@ A
 10
 </code></pre>
 <p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>salloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
+<p><strong>固定長配列型(0.2.16以降)</strong></p>
+<p>固定長配列型はすべての要素が同じ型である必要があり、また配列のサイズを変更することもできません。これは型名自体がサイズと要素の型の情報を持っているためです。例えば要素の型が<code>i64</code>でサイズが<code>10</code>の固定長配列型の型名は<code>array_10:i64</code>となるように、要素の型<code>T</code>、サイズ<code>N</code>に対して<code>array_N:T</code>という型名になります。また<code>array(1,2,3)</code>のようにして値を作ることができます。要素へのアクセスはポインタでは<code>[]</code>を用いましたが、固定長配列型では<code>[array]</code>を用います。先ほどのポインタ型による配列の処理を固定長配列型でも同じように書いてみましょう。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(str, array('h','e','l','l','o'), array_5:char);
+    println(format("%s",as(str,ptr:char)));
+
+    #=(arr,array(3,1,4,1,5) , array_5:i64);
+    #=(i,0,i64);
+    loopif:(&lt;(i,5)){
+        println(format("%d", [array](arr,i)));
+        =(i,+(i,1));
+    }
+
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">hello
+3
+1
+4
+1
+5
+</code></pre>
+<p>固定長配列型のとポインタ配列の最も大きな違いは固定長配列型は要素そのものが値であるという点です。ポインタ配列の値は0個目の要素の値があるメモリ上のアドレスであり、それを他の変数に渡しても参照するアドレスが渡されるだけで要素の値が格納されている場所は同じです。一方固定長配列型では要素そのものがすべて渡されるため要素が格納されている場所は変数によって異なります。</p>
+<pre><code class="language-wapl">fn print_array(ptr:i64 arr){
+    #=(i,0,i64);
+    loopif:(&lt;(i,7)){
+        print(format("%d,", [](arr,i)));
+        =(i,+(i,1));
+    }
+    println("");
+}
+
+fn main():i32{
+    
+    // ====固定長配列型====
+    println("固定長配列型");
+    #=(arr1,array(0,1,1,2,3,5,8) , array_7:i64);
+
+    #=(arr2, arr1, array_7:i64);
+
+    // arr2のインデックス3の値を99に書き変える
+    =([array](arr2,3),99);
+
+    // ----arr1を表示----
+    print_array(as(arr1,ptr:i64));
+    // ----arr2を表示----
+    print_array(as(arr2,ptr:i64));
+    
+    
+    // ====ポインタ配列型====
+    println("ポインタ配列");
+    #=(ptr1, salloc(i64,7), ptr:i64);
+    =(ptr1,Array(0,1,1,2,3,5,8));
+
+    #=(ptr2, ptr1, ptr:i64);
+
+    // ptr2のインデックス3の値を99に書き変える
+    =([](ptr2,3),99);
+
+    // ----ptr1を表示----
+    print_array(ptr1);
+    // ----ptr2を表示----
+    print_array(ptr2);
+
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">固定長配列型
+0,1,1,2,3,5,8,
+0,1,1,99,3,5,8,
+ポインタ配列
+0,1,1,99,3,5,8,
+0,1,1,99,3,5,8,
+</code></pre>
+<p>そのため、このようにしたときに固定長配列型では<code>arr2</code>に加えた変化は<code>arr1</code>には影響がありませんが、ポインタ配列では<code>ptr2</code>に加えた変化が<code>ptr1</code>にも反映されます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="関数"><a class="header" href="#関数">関数</a></h1>
 <p>WapLでは1.2で述べたように基本的に<code>main</code>関数がエントリーポイントになります。しかし、<code>main</code>以外の関数をエントリーポイントのようにすることも可能です。</p>
@@ -703,6 +781,105 @@ LOOP1:3
 LOOP1:4
 </code></pre>
 <p>このように<code>loopif</code>は名前ありでも名前なしでも作ることができ、ループを抜けたいときは<code>break-名前</code>に飛ぶことで抜けることができ、以下の処理をせずに条件の評価に戻りたいときは<code>continue-名前</code>に飛ぶことでできる。</p>
+<p><strong>if文(0.1.13以降)</strong></p>
+<p>多くの言語で見られるif文。言語によってはif文とif式は同じ文法で記述できるものもありますが、WapLでは異なるキーワードを使っています。</p>
+<p>if文は以下のように使うことができます</p>
+<pre><code class="language-wapl">fn main():i32{
+
+    if (true){
+        println("True");
+    }
+    if (false){
+        println("False");
+    }
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">True
+</code></pre>
+<p>このように<code>if</code>のあとの<code>()</code>の中に<code>bool</code>型で条件を書き、<code>true</code>のときには<code>{}</code>の中の処理が実行されます。</p>
+<p><strong>elifとelse</strong></p>
+<p>if文で前の条件が<code>false</code>であるときに<code>false</code>側でも処理をしたいときに毎回<code>if</code>で前の条件が<code>false</code>であるときを指定するのはめんどくさいです。そこで使えるのが<code>elif</code>と<code>else</code>です。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x, 7, i64);
+    if (&gt;(x, 10)){
+        println(format("%lld &gt; 10",x));
+    }elif (&gt;(x, 5)){
+        println(format("5 &lt; %lld &lt;= 10",x));
+    }else{
+        println(format("%lld &lt;= 5",x));
+    }
+    return 0s;
+}
+</code></pre>
+<pre><code>5 &lt; 7 &lt;= 10
+</code></pre>
+<p>このように前の条件が<code>false</code>であることを前提にして条件を書いたり、その他の場合を記述できます。</p>
+<p><strong>?演算子</strong></p>
+<p>これはif式に相当する演算子です。中には文は書けないのでもし文を書きたい場合は関数を作ってその関数を呼ぶようにしてください。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x, ?(false,10,5), i64);
+    println(format("x = %lld", x));
+    return 0s;
+}
+</code></pre>
+<pre><code>x = 5
+</code></pre>
+<p>このように第1引数に条件を書き、続けて<code>true</code>のときの値、<code>false</code>のときの値を書きます。このとき値の型は一致していてさらに<code>void</code>であってはいけません。</p>
+<pre><code class="language-wapl">fn Hello(){
+    println("Hello");
+}
+fn Bye(){
+    println("Bye");
+}
+
+fn main():i32{
+    ?(true,Hello(),Bye());
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">src/main.ll:56:1: error: expected instruction opcode
+   56 | if.merge:                                         ; No predecessors!
+      | ^
+1 error generated.
+</code></pre>
+<p>このように<code>void</code>の場合エラーが出ます。これを回避するためには以下のようにして意味がなくとも戻り値を持たせる必要があります。</p>
+<pre><code class="language-wapl">fn Hello():i32{
+    println("Hello");
+    return 0s;
+}
+fn Bye():i32{
+    println("Bye");
+    return 0s;
+}
+
+fn main():i32{
+    ?(true,Hello(),Bye());
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">Hello
+</code></pre>
+<p><strong>choose</strong></p>
+<p><code>?</code>演算と似たようなものとして<code>choose</code>があります。違いとしては<code>?</code>は片方しか評価しない一方<code>choose</code>は両方を評価してから条件に合う値を返します。先ほどのHelloとByeの<code>?</code>を<code>choose</code>に書き変えて試してみましょう。</p>
+<pre><code class="language-wapl">fn Hello():i32{
+    println("Hello");
+    return 0s;
+}
+fn Bye():i32{
+    println("Bye");
+    return 0s;
+}
+
+fn main():i32{
+    choose(true,Hello(),Bye());
+    return 0s;
+}
+</code></pre>
+<pre><code>Hello
+Bye
+</code></pre>
+<p>このようにHello/Byeともに実行されたことが確認できます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="簡易的な所有権借用"><a class="header" href="#簡易的な所有権借用">簡易的な所有権/借用</a></h1>
 <p>WapLの所有権はRustの所有権を参考にしてより簡易的で緩いチェックではあるものの、ある程度の安全性をコンパイル時に担保できます。この章では、所有権の挙動とポインタの使い方について話していきます。</p>
@@ -3826,6 +4003,201 @@ pub struct ScopeOwner {
 <p>この方法でインストールした場合プロジェクト内のwapl.tomlのclangの欄を<code>"clang-21"</code>に書き変えるか以下のようにして<code>clang</code>を<code>clang-21</code>になるようにしておく必要があるかもしれません</p>
 <pre><code class="language-bash">sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="waplでwebassemblyにビルドする"><a class="header" href="#waplでwebassemblyにビルドする">WapLでWebAssemblyにビルドする</a></h1>
+<h2 id="環境構築"><a class="header" href="#環境構築">環境構築</a></h2>
+<p>waplc_v0.2以降ではWebAssembly(以下wasm)向けビルドに対応しています。またwapl-cliが古いとwapl-cliでのwasm向けビルドに対応していないことがあるのでその場合は<a href="#インストール">第1章のWapLを導入</a>にある最初のコマンドで更新してその後<code>waplup update</code>で<code>waplc</code>の更新をしてください。</p>
+<p>まずはwasm向けにビルドするためにまずはwasmに対応したclangや.wasmから.watファイルを作るツールをインストールします、すでにこれらがインストールされている場合はwapl.tomlファイルに設定を書くところまで飛ばして大丈夫です。</p>
+<p>wgetがなければインストール</p>
+<pre><code class="language-bash">$ sudo apt update
+</code></pre>
+<pre><code class="language-bash">$ sudo apt install -y wget gnupg
+</code></pre>
+<p>wasi-sdkをインストール(バージョンはLLVM-21に対応しているもの)</p>
+<pre><code class="language-bash">$ wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-29/wasi-sdk-29.0-x86_64-linux.tar.gz
+</code></pre>
+<pre><code class="language-bash">$ tar xf wasi-sdk-29.0-x86_64-linux.tar.gz
+</code></pre>
+<p>wasmの実行のためのランタイムをインストール</p>
+<pre><code class="language-bash">$ wget https://github.com/bytecodealliance/wasmtime/releases/download/v40.0.0/wasmtime-v40.0.0-x86_64-linux.tar.xz -O wasmtime.tar.xz
+</code></pre>
+<pre><code class="language-bash">$ tar -xf wasmtime.tar.xz 
+</code></pre>
+<p>.watファイルを生成するためのツールをインストール</p>
+<pre><code class="language-bash">$ sudo apt install wabt
+</code></pre>
+<p>ではここからwapl.tomlに設定を書きます。ここの例は上記のインストール方法で環境を整えた場合の設定です</p>
+<pre><code class="language-toml">[wasm]
+input = "src/main.wapl"
+output = "target/プロジェクト名.wasm"
+opt = "O3"
+clang = "$HOME/wasi-sdk-29.0-x86_64-linux/bin/clang"
+bitsize = "32"
+sysroot = "$HOME/wasi-sdk-29.0-x86_64-linux/share/wasi-sysroot"
+wasm2wat = "wasm2wat"
+wat = "src/プロジェクト名.wat"
+wasmruntime = "$HOME/wasmtime-v40.0.0-x86_64-linux/wasmtime"
+memory-size = "655360"
+</code></pre>
+<p>それぞれの項目について説明します。</p>
+<p><code>input</code>,<code>output</code>,<code>opt</code>,<code>clang</code>,<code>bitsize</code>、に関しては<code>[build]</code>のときと同じです。clangのところはちゃんとwasmに対応したものに切り替えておきましょう。<code>sysroot</code>にはwasi-sdkのshare/wasi-sysrootのパス、<code>wasm2wat</code>にはwasm2watのパス、<code>wat</code>は生成される.watファイルの名前、<code>wasmruntime</code>はwasmtimeのパス、<code>memory-size</code>にはwasmでのヒープmemoryのサイズです。</p>
+<p>ここまで設定できたら</p>
+<pre><code class="language-bash">$ wapl-cli wasm
+</code></pre>
+<p>でビルド</p>
+<pre><code class="language-bash">$ wapl-cli wasm_run
+</code></pre>
+<p>でビルド&amp;実行</p>
+<pre><code class="language-bash">$ wapl-cli wasm_browser
+</code></pre>
+<p>でエントリーポイントやlibc無しでビルド</p>
+<p>のようにしてビルドすることができます。
+<code>wapl-cli wasm</code>や<code>wapl-cli wasm_run</code>でビルドするときはエントリーポイントを作るのであれば<code>__main_void():i32</code>または<code>__main_argc_argv(i32 argc, ptr:ptr:char argv):i32</code>としてください。また<code>wapl-cli wasm_browser</code>ではlibcとリンクして使っていた<code>malloc</code>や<code>printf</code>などの関数が使えなくなりますしそれらを内部で使っているため標準ライブラリのstdにあるものも一部使えません。さらに<code>println</code>や<code>format</code>などの組み込み関数も内部ではlibcを使っているため使えなくなります。そのため代替となる関数を組み込み関数と名前衝突が起こらないように作って使ってください。</p>
+<h2 id="wasm向けビルドをして実行するまでのチュートリアル"><a class="header" href="#wasm向けビルドをして実行するまでのチュートリアル">WASM向けビルドをして実行するまでのチュートリアル</a></h2>
+<h3 id="とりあえずプロジェクトの作成からビルド実行"><a class="header" href="#とりあえずプロジェクトの作成からビルド実行">とりあえずプロジェクトの作成からビルド&amp;実行</a></h3>
+<pre><code class="language-bash">$ cd ~/projects/
+$ wapl-cli new hello_wasm
+$ cd hello_wasm
+</code></pre>
+<p>まず<code>hello_wasm</code>プロジェクトを作ります。</p>
+<p>次に自分の環境に合わせてwapl.tomlファイルに設定を書いてください。</p>
+<p>次に<code>./src/main.wapl</code>を以下のように書き変えてください。</p>
+<pre><code class="language-wapl">fn __main_void():i32{
+    println("Hello, WASM!");
+    return 0s;
+}
+</code></pre>
+<p>これで</p>
+<pre><code class="language-bash">$ wapl-cli wasm_run
+</code></pre>
+<p>とすることでビルド&amp;実行されて</p>
+<pre><code>Hello, WASM!
+</code></pre>
+<p>と表示されるはずです。ポイントとしてはネイティブでは<code>main():i32</code>だったエントリーポイントが<code>__main_void():i32</code>になっていることです。</p>
+<h3 id="ブラウザで動くものを作ってみよう"><a class="header" href="#ブラウザで動くものを作ってみよう">ブラウザで動くものを作ってみよう</a></h3>
+<p>ここではWapLを<code>wapl-cli wasm_browser</code>を使ってビルドしてWapLで作った関数をTypeScriptという言語から呼んでブラウザで表示するというものを作ってみましょう。プロジェクトは先ほど作った<code>hello_wasm</code>を流用します。まず、Node.jsやTypeScriptの環境がない場合はその環境を構築します。以下の環境構築方法は筆者が行った例です。自分の環境に合わせた方法で行ってください。</p>
+<pre><code class="language-bash">$ cd ~
+$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.6/install.sh | bash
+$ export NVM_DIR="$HOME/.nvm"
+$ [ -s "$NVM_DIR/nvm.sh" ] &amp;&amp; . "$NVM_DIR/nvm.sh"
+$ nvm install --lts
+$ nvm use --lts
+$ node -v
+$ npm -v
+$ cd projects/hello_wasm/
+$ npm init -y
+$ npm install --save-dev typescript ts-node @types/node
+$ tsc --init
+$ npm install --save-dev vite
+</code></pre>
+<p>これで<code>hello_wasm</code>プロジェクトでNode.jsでTypeScriptを使う環境が整いました。以降はプロジェクトで<code>npm init -y</code>と<code>tsc --init</code>さえすればいつでもNode.jsが使えるようになります。</p>
+<p>次はWapLのWASM向けライブラリ<strong>wasmpl</strong>を取得します。</p>
+<pre><code class="language-bash">$ wapl-cli get_lib wasmpl 0.1.2
+</code></pre>
+<p>ここではwasmplのバージョン0.1.2を取得しましたが、今回使う機能はこの0.1.2時点である機能で十分なのでこのバージョンにしています。WapL標準ライブラリstdにあるものを順次wasmplにも同様のwasm版のを作っていっているのでそれらが使いたい場合はより新しいバージョンであればあるかもしれません。</p>
+<p>次に./src/main.tsを作ります。ここにWapLの関数を呼び出すTypeScriptのコードを書いていきます。</p>
+<p>次は./index.htmlを作ります。</p>
+<p>ここからコードを書いていきます。このチュートリアルではWapLで整数<code>n</code>を受け取って<code>n</code>項までのフィボナッチ数列の配列を返す関数を作って、それをTypeScriptから呼んで配列の要素すべてを画面上に表示するようなものを作ります。</p>
+<p>index.htmlには以下のように書きます。</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;WapL Fibo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;WapL Fibonacci&lt;/h1&gt;
+
+  &lt;label for="inputN"&gt;n = &lt;/label&gt;
+  &lt;input type="number" id="inputN" value="10" min="0" /&gt;
+  &lt;button id="calcBtn"&gt;計算&lt;/button&gt;
+
+  &lt;pre id="output"&gt;&lt;/pre&gt;
+
+  &lt;script type="module" src="./src/main.ts"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>./src/main.waplには以下のようにフィボナッチ数列を作る<code>fibo(isize):*:isize</code>という形の関数を作って<code>export</code>することでTypeScript側で呼べるようにします。</p>
+<pre><code class="language-wapl">use "./lib/wasmpl/wasmpl_all.wapl" // wasmplにあるものをすべて使えるようにする
+
+fn fibo(isize n):*:isize{
+    #=(sz,sizeof(isize),isize);
+    // 配列のためのメモリをヒープ上に確保
+    // ここでは組み込み関数のmallocがlibc依存のため使えないのでwasmplにあるmalloc_wasmを使う
+    #=(arr,malloc_wasm(*(n,sz)),*:isize); 
+
+    if(&lt;=(n,1_)){
+        =(arr,Array(1_));
+        return arr;
+    }
+
+    =(arr,Array(1_,1_)); // 初項
+    #=(i,2_,isize);
+    // フィボナッチ数列を計算
+    loopif:(&lt;(i,n)){
+        =([](arr,i),+([](arr,-(i,1)),[](arr,-(i,2))));
+        =(i,+(i,1_));
+    }
+    
+    // *:isizeの型で配列を返す
+    return pmove(arr);
+}
+
+export fibo; // exportして外から呼べるようにする
+</code></pre>
+<p>そしたら、TypeScriptで<code>fibo</code>を呼び出す処理を./src/main.tsに書き込みます。</p>
+<pre><code class="language-ts">async function main() {
+    const response = await fetch("/target/hello_wasm.wasm");
+    const bytes = await response.arrayBuffer();
+
+    const imports = { env: {} };
+    const wasmModule = await WebAssembly.instantiate(bytes, imports);
+    const exports = wasmModule.instance.exports as any;
+    exports.__init_wasm();
+
+    const memory = exports.memory as WebAssembly.Memory;
+
+    const inputN = document.getElementById("inputN") as HTMLInputElement;
+    const calcBtn = document.getElementById("calcBtn")!;
+    const output = document.getElementById("output")!;
+
+    calcBtn.addEventListener("click", () =&gt; {
+        const n = parseInt(inputN.value);
+        if (isNaN(n) || n &lt; 0) {
+            output.textContent = "0以上の整数を入力してください";
+            return;
+        }
+
+        // WapL fibo を呼び出す
+        const ptr = exports.fibo(n) as number;
+
+        // Int32Array を作ってコピー
+        const memView = new Int32Array(memory.buffer, ptr, n);
+        const result = Array.from(memView);
+
+        // DOM に描画
+        output.textContent = `fibo(${n}) = [${result.join(", ")}]`;
+
+        // メモリ解放
+        exports.free_wasm(ptr);
+    });
+}
+
+main();
+</code></pre>
+<p>これでコードは書き終わったのでビルドしてブラウザで開いてみましょう。</p>
+<p>WapLのビルド</p>
+<pre><code class="language-bash">$ wapl-cli wasm_browser
+</code></pre>
+<p>全体のビルド&amp;実行</p>
+<pre><code class="language-bash">$ npx vite
+</code></pre>
+<p>これで表示されるURLをブラウザで開けば以下のように表示されるはずです。</p>
+<img src="picture/hello_wasm_fibo1.png" width="400">
+<p><code>計算</code>ボタンを押すと</p>
+<img src="picture/hello_wasm_fibo2.png" width="400">
+<p>のように表示することができるものが作れました。</p>
 
                     </main>
 
@@ -3867,7 +4239,7 @@ pub struct ScopeOwner {
 
         <!-- Custom JS scripts -->
         <script src="theme/highlight-837a6fa5.min.js"></script>
-        <script src="theme/wapl-6b44a6eb.js"></script>
+        <script src="theme/wapl-a169e50d.js"></script>
         <script src="theme/wapl-rainbow-f254588b.js"></script>
 
         <script>

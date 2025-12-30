@@ -42,7 +42,7 @@
 
 /* 型 (i32, f64, ptr:T など → Rust の型色) */
 .hljs-type {
-    color: #66d9ef;
+    color: #26a715;
     /*font-weight: bold;*/
 }
 

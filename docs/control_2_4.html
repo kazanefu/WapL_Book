@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/wapl-38f40ac6.css">
+        <link rel="stylesheet" href="theme/wapl-7ab61934.css">
         <link rel="stylesheet" href="theme/wapl-rainbow-f888ae4b.css">
 
 
@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b2448918.js";
+            window.path_to_searchindex_js = "searchindex-c55377fe.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-52f92f80.js"></script>
+        <script src="toc-b10e67cd.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -245,6 +245,105 @@ LOOP1:3
 LOOP1:4
 </code></pre>
 <p>このように<code>loopif</code>は名前ありでも名前なしでも作ることができ、ループを抜けたいときは<code>break-名前</code>に飛ぶことで抜けることができ、以下の処理をせずに条件の評価に戻りたいときは<code>continue-名前</code>に飛ぶことでできる。</p>
+<p><strong>if文(0.1.13以降)</strong></p>
+<p>多くの言語で見られるif文。言語によってはif文とif式は同じ文法で記述できるものもありますが、WapLでは異なるキーワードを使っています。</p>
+<p>if文は以下のように使うことができます</p>
+<pre><code class="language-wapl">fn main():i32{
+
+    if (true){
+        println("True");
+    }
+    if (false){
+        println("False");
+    }
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">True
+</code></pre>
+<p>このように<code>if</code>のあとの<code>()</code>の中に<code>bool</code>型で条件を書き、<code>true</code>のときには<code>{}</code>の中の処理が実行されます。</p>
+<p><strong>elifとelse</strong></p>
+<p>if文で前の条件が<code>false</code>であるときに<code>false</code>側でも処理をしたいときに毎回<code>if</code>で前の条件が<code>false</code>であるときを指定するのはめんどくさいです。そこで使えるのが<code>elif</code>と<code>else</code>です。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x, 7, i64);
+    if (&gt;(x, 10)){
+        println(format("%lld &gt; 10",x));
+    }elif (&gt;(x, 5)){
+        println(format("5 &lt; %lld &lt;= 10",x));
+    }else{
+        println(format("%lld &lt;= 5",x));
+    }
+    return 0s;
+}
+</code></pre>
+<pre><code>5 &lt; 7 &lt;= 10
+</code></pre>
+<p>このように前の条件が<code>false</code>であることを前提にして条件を書いたり、その他の場合を記述できます。</p>
+<p><strong>?演算子</strong></p>
+<p>これはif式に相当する演算子です。中には文は書けないのでもし文を書きたい場合は関数を作ってその関数を呼ぶようにしてください。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(x, ?(false,10,5), i64);
+    println(format("x = %lld", x));
+    return 0s;
+}
+</code></pre>
+<pre><code>x = 5
+</code></pre>
+<p>このように第1引数に条件を書き、続けて<code>true</code>のときの値、<code>false</code>のときの値を書きます。このとき値の型は一致していてさらに<code>void</code>であってはいけません。</p>
+<pre><code class="language-wapl">fn Hello(){
+    println("Hello");
+}
+fn Bye(){
+    println("Bye");
+}
+
+fn main():i32{
+    ?(true,Hello(),Bye());
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">src/main.ll:56:1: error: expected instruction opcode
+   56 | if.merge:                                         ; No predecessors!
+      | ^
+1 error generated.
+</code></pre>
+<p>このように<code>void</code>の場合エラーが出ます。これを回避するためには以下のようにして意味がなくとも戻り値を持たせる必要があります。</p>
+<pre><code class="language-wapl">fn Hello():i32{
+    println("Hello");
+    return 0s;
+}
+fn Bye():i32{
+    println("Bye");
+    return 0s;
+}
+
+fn main():i32{
+    ?(true,Hello(),Bye());
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">Hello
+</code></pre>
+<p><strong>choose</strong></p>
+<p><code>?</code>演算と似たようなものとして<code>choose</code>があります。違いとしては<code>?</code>は片方しか評価しない一方<code>choose</code>は両方を評価してから条件に合う値を返します。先ほどのHelloとByeの<code>?</code>を<code>choose</code>に書き変えて試してみましょう。</p>
+<pre><code class="language-wapl">fn Hello():i32{
+    println("Hello");
+    return 0s;
+}
+fn Bye():i32{
+    println("Bye");
+    return 0s;
+}
+
+fn main():i32{
+    choose(true,Hello(),Bye());
+    return 0s;
+}
+</code></pre>
+<pre><code>Hello
+Bye
+</code></pre>
+<p>このようにHello/Byeともに実行されたことが確認できます。</p>
 
                     </main>
 
@@ -298,7 +397,7 @@ LOOP1:4
 
         <!-- Custom JS scripts -->
         <script src="theme/highlight-837a6fa5.min.js"></script>
-        <script src="theme/wapl-6b44a6eb.js"></script>
+        <script src="theme/wapl-a169e50d.js"></script>
         <script src="theme/wapl-rainbow-f254588b.js"></script>
 
 

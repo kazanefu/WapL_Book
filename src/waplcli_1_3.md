@@ -61,6 +61,7 @@ output = "target/hello_wapl_cli"
 opt = "O3"
 clang = "clang"
 ```
+waplc_v0.2.16以降に付属するwapl-cliを使った場合では`[wasm]`の欄が追加されて、さらに`[build]`/`[release]`にも`bitsize`という項目が追加されているはずです。
 
 ## wapl-cliでビルド/実行する
 

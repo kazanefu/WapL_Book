@@ -25,3 +25,4 @@
 - [付録](./huroku.md)
   - [WapLコンパイラの作り方](./howtomakewapl.md)
   - [Clang/LLVMのインストール](./howtoinstallclang.md)
+  - [WapLでWebAssemblyにビルドする](./howtomakewasmenv.md)

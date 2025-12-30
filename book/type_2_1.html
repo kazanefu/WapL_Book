@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/wapl-38f40ac6.css">
+        <link rel="stylesheet" href="theme/wapl-7ab61934.css">
         <link rel="stylesheet" href="theme/wapl-rainbow-f888ae4b.css">
 
 
@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b2448918.js";
+            window.path_to_searchindex_js = "searchindex-c55377fe.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-52f92f80.js"></script>
+        <script src="toc-b10e67cd.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,8 +181,8 @@
 <p><strong>スカラー型</strong></p>
 <p>スカラー型は、単独の値を表します。WapLにおいては主に4つのスカラー型があります: 整数、浮動小数点数、論理値、文字、です。</p>
 <p><strong>整数型</strong></p>
-<p>WapLでは2種類の整数型があります:<code>i32</code>と<code>i64</code>です。それぞれ32-bit、64-bitの符号ありの整数です。符号ありなので例えば<code>i32</code>だと$-(2^{31})$から$2^{31}-1$まで表現できます。</p>
-<p>整数リテラルは小数点を含まないただの整数は<code>i64</code>になり、末尾に<code>s</code>をつけると<code>i32</code>になります。</p>
+<p>WapLでは2種類の整数型があります:<code>i32</code>と<code>i64</code>と<code>isize</code>です。それぞれ32-bit、64-bitの符号ありの整数、ビルド時に何ビットアーキテクチャをターゲットにしているかに合わせたサイズになる符号あり整数です。符号ありなので例えば<code>i32</code>だと$-(2^{31})$から$2^{31}-1$まで表現できます。</p>
+<p>整数リテラルは小数点を含まないただの整数は<code>i64</code>になり、末尾に<code>s</code>をつけると<code>i32</code>になります。また末尾に<code>_</code>をつけると<code>isize</code>になります</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -191,6 +191,7 @@
 <tbody>
 <tr><td>i64</td><td>-123</td></tr>
 <tr><td>i32</td><td>42s</td></tr>
+<tr><td>isize</td><td>10_</td></tr>
 </tbody>
 </table>
 </div>
@@ -286,6 +287,82 @@ A
 10
 </code></pre>
 <p>このように、文字列や配列もポインタ型として扱います。文字列リテラルはダブルクォーテーションで囲みます。また、配列は先に型と要素数を指定して<code>salloc</code>でスタック上にメモリを確保して<code>Array</code>で値を列挙して配列に格納していき、<code>[](ポインタ変数, インデックス)</code>で値を取り出せます。<code>[]</code>では多次元配列でも<code>[](ポインタ変数, インデックス1, インデックス2, ...)</code>のようにして簡単に値を取り出すことができます。</p>
+<p><strong>固定長配列型(0.2.16以降)</strong></p>
+<p>固定長配列型はすべての要素が同じ型である必要があり、また配列のサイズを変更することもできません。これは型名自体がサイズと要素の型の情報を持っているためです。例えば要素の型が<code>i64</code>でサイズが<code>10</code>の固定長配列型の型名は<code>array_10:i64</code>となるように、要素の型<code>T</code>、サイズ<code>N</code>に対して<code>array_N:T</code>という型名になります。また<code>array(1,2,3)</code>のようにして値を作ることができます。要素へのアクセスはポインタでは<code>[]</code>を用いましたが、固定長配列型では<code>[array]</code>を用います。先ほどのポインタ型による配列の処理を固定長配列型でも同じように書いてみましょう。</p>
+<pre><code class="language-wapl">fn main():i32{
+    #=(str, array('h','e','l','l','o'), array_5:char);
+    println(format("%s",as(str,ptr:char)));
+
+    #=(arr,array(3,1,4,1,5) , array_5:i64);
+    #=(i,0,i64);
+    loopif:(&lt;(i,5)){
+        println(format("%d", [array](arr,i)));
+        =(i,+(i,1));
+    }
+
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">hello
+3
+1
+4
+1
+5
+</code></pre>
+<p>固定長配列型のとポインタ配列の最も大きな違いは固定長配列型は要素そのものが値であるという点です。ポインタ配列の値は0個目の要素の値があるメモリ上のアドレスであり、それを他の変数に渡しても参照するアドレスが渡されるだけで要素の値が格納されている場所は同じです。一方固定長配列型では要素そのものがすべて渡されるため要素が格納されている場所は変数によって異なります。</p>
+<pre><code class="language-wapl">fn print_array(ptr:i64 arr){
+    #=(i,0,i64);
+    loopif:(&lt;(i,7)){
+        print(format("%d,", [](arr,i)));
+        =(i,+(i,1));
+    }
+    println("");
+}
+
+fn main():i32{
+    
+    // ====固定長配列型====
+    println("固定長配列型");
+    #=(arr1,array(0,1,1,2,3,5,8) , array_7:i64);
+
+    #=(arr2, arr1, array_7:i64);
+
+    // arr2のインデックス3の値を99に書き変える
+    =([array](arr2,3),99);
+
+    // ----arr1を表示----
+    print_array(as(arr1,ptr:i64));
+    // ----arr2を表示----
+    print_array(as(arr2,ptr:i64));
+    
+    
+    // ====ポインタ配列型====
+    println("ポインタ配列");
+    #=(ptr1, salloc(i64,7), ptr:i64);
+    =(ptr1,Array(0,1,1,2,3,5,8));
+
+    #=(ptr2, ptr1, ptr:i64);
+
+    // ptr2のインデックス3の値を99に書き変える
+    =([](ptr2,3),99);
+
+    // ----ptr1を表示----
+    print_array(ptr1);
+    // ----ptr2を表示----
+    print_array(ptr2);
+
+    return 0s;
+}
+</code></pre>
+<pre><code class="language-bash">固定長配列型
+0,1,1,2,3,5,8,
+0,1,1,99,3,5,8,
+ポインタ配列
+0,1,1,99,3,5,8,
+0,1,1,99,3,5,8,
+</code></pre>
+<p>そのため、このようにしたときに固定長配列型では<code>arr2</code>に加えた変化は<code>arr1</code>には影響がありませんが、ポインタ配列では<code>ptr2</code>に加えた変化が<code>ptr1</code>にも反映されます。</p>
 
                     </main>
 
@@ -339,7 +416,7 @@ A
 
         <!-- Custom JS scripts -->
         <script src="theme/highlight-837a6fa5.min.js"></script>
-        <script src="theme/wapl-6b44a6eb.js"></script>
+        <script src="theme/wapl-a169e50d.js"></script>
         <script src="theme/wapl-rainbow-f254588b.js"></script>
 
 
