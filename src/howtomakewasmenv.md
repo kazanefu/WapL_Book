@@ -185,19 +185,20 @@ export fibo; // exportして外から呼べるようにする
 そしたら、TypeScriptで`fibo`を呼び出す処理を./src/main.tsに書き込みます。
 ```ts
 async function main() {
-    const response = await fetch("/target/hello_wasm.wasm");
+    const response = await fetch("/target/hello_wasm.wasm"); // WapLをビルドして作られた.wasmファイルを取得
     const bytes = await response.arrayBuffer();
 
     const imports = { env: {} };
     const wasmModule = await WebAssembly.instantiate(bytes, imports);
-    const exports = wasmModule.instance.exports as any;
-    exports.__init_wasm();
+    const exports = wasmModule.instance.exports as any; // exportされているWapLの関数を取得
+
+    exports.__init_wasm(); // wasmplにあるmalloc_wasmやfree_wasmを使っているためメモリの初期化とかをするために__init_wasmを呼ぶ必要がある
 
     const memory = exports.memory as WebAssembly.Memory;
 
-    const inputN = document.getElementById("inputN") as HTMLInputElement;
-    const calcBtn = document.getElementById("calcBtn")!;
-    const output = document.getElementById("output")!;
+    const inputN = document.getElementById("inputN") as HTMLInputElement; // nの入力する場所を指定
+    const calcBtn = document.getElementById("calcBtn")!; // 計算ボタンを指定
+    const output = document.getElementById("output")!; // 結果を表示する場所を指定
 
     calcBtn.addEventListener("click", () => {
         const n = parseInt(inputN.value);
@@ -206,14 +207,14 @@ async function main() {
             return;
         }
 
-        // WapL fibo を呼び出す
+        // WapLで作ったfibo を呼び出す
         const ptr = exports.fibo(n) as number;
 
         // Int32Array を作ってコピー
         const memView = new Int32Array(memory.buffer, ptr, n);
         const result = Array.from(memView);
 
-        // DOM に描画
+        // 描画
         output.textContent = `fibo(${n}) = [${result.join(", ")}]`;
 
         // メモリ解放
